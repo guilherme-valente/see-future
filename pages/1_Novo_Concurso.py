@@ -45,7 +45,17 @@ with st.container(border=True):
         referencia = st.text_input("Referência*")
         cliente_nome = st.text_input("Cliente (Entidade Adjudicante)*")
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Outro"])
-        mercado = st.selectbox("Mercado", ["Fiscalização", "Projeto", "Coordenação", "Construção"])
+        mercado = st.selectbox("Unidade de Negócio", [
+            "Infraestruturas de Transporte",
+            "Sistema de Metro e Ferroviário",
+            "Marítima e Portuária",
+            "Água, Saneamento e Resíduos",
+            "Cidades e Edifícios",
+            "Sustentabilidade e Energia",
+            "Real Estate",
+            "Gestão e Supervisão da Construção",
+            "GEOLAB"
+        ])
     
     with col2:
         preco_base = st.number_input("Preço Base (€)", min_value=0.0, step=1000.0)
