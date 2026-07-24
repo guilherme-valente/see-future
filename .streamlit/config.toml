@@ -4,6 +4,7 @@ backgroundColor = "#FFFFFF"       # Fundo principal limpo (Branco)
 secondaryBackgroundColor = "#F4F5F7" # Cinza muito claro para barra lateral e cartões
 textColor = "#091E42"             # Azul-escuro quase preto para máxima legibilidade
 font = "sans serif"
+base="light"
 
 [browser]
 gatherUsageStats = false
