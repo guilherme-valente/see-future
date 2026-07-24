@@ -156,7 +156,17 @@ try:
                 with col_in1:
                     lista_clientes = sorted(df_concursos['nome_cliente'].unique())
                     cliente_sel = st.selectbox("Cliente em Análise", lista_clientes)
-                    mercado_sel = st.selectbox("Mercado do Concurso", ["Fiscalização", "Projeto", "Coordenação", "Construção"])
+                    mercado_sel = st.selectbox("Unidade de Negócio", [
+            "Infraestruturas de Transporte",
+            "Sistema de Metro e Ferroviário",
+            "Marítima e Portuária",
+            "Água, Saneamento e Resíduos",
+            "Cidades e Edifícios",
+            "Sustentabilidade e Energia",
+            "Real Estate",
+            "Gestão e Supervisão da Construção",
+            "GEOLAB"
+        ])
                     distrito_sel = st.selectbox("Zona / Distrito da Obra", ["Lisboa", "Norte", "Centro", "Sul", "Outro"])
 
                 with col_in2:
@@ -254,7 +264,7 @@ try:
                 st.metric(
                     label="Preço Médio Estimado da Concorrência", 
                     value=formatar_moeda(preco_base_input * (1 - desconto_medio_esperado)),
-                    help="Valor de proposta médio esperado. Resulta da aplicação da taxa média de desconto histórico praticada por concorrentes (neste cliente ou mercado) sobre o preço base actual do concurso."
+                    help="Valor de proposta médio esperado. Resulta da aplicação da taxa média de desconto histórico praticada por concorrentes (neste cliente ou unidade de negócio) sobre o preço base actual do concurso."
                 )
             with col_m3:
                 st.metric(
@@ -317,7 +327,7 @@ try:
                 elif prob_ponderada_final > 0.45:
                     st.warning("Equilíbrio de Forças no Mercado: Margem de decisão estrita. O resultado assentará na avaliação fina do júri relativamente aos critérios técnicos.")
                 else:
-                    st.error("Posicionamento de Baixa Competitividade: Margem financeira excessivamente conservadora. O valor situa-se acima das médias agressivas operadas neste mercado.")
+                    st.error("Posicionamento de Baixa Competitividade: Margem financeira excessivamente conservadora. O valor situa-se acima das médias agressivas operadas neste tipo de concurso.")
             
             with col_res2:
                 cor_painel = "#ef4444" if preco_future < valor_limiar_critico else ("#22c55e" if prob_ponderada_final > 0.65 else "#eab308")

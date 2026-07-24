@@ -387,7 +387,7 @@ try:
                         with colA:
                             st.markdown(f"**Cliente:** {dados_cc['Cliente']}")
                             st.markdown(f"**Distrito:** {dados_cc['Distrito'] if dados_cc['Distrito'] else 'Não definido'}")
-                            st.markdown(f"**Mercado:** {dados_cc['mercado']}")
+                            st.markdown(f"**Unidade de Negócio:** {dados_cc['mercado']}")
                         with colB:
                             st.markdown(f"**Preço Base:** {formatar_moeda(dados_cc['preco_base'])}")
                             st.markdown(f"**Prazo:** {dados_cc['prazo_dias']} dias")

@@ -261,7 +261,7 @@ def _soma_notas(notas_json):
 
 
 # =============================================================================
-# CONTEXTO ESTATÍSTICO (histórico filtrado por cliente / mercado / zona)
+# CONTEXTO ESTATÍSTICO (histórico filtrado por cliente / unidade de negócio / zona)
 # =============================================================================
 @dataclass
 class ContextoHistorico:
@@ -606,7 +606,7 @@ def render_indicadores_calibracao(ctx: ContextoHistorico, preco_base_input):
             "Índice de Fiabilidade Analítica (alpha)",
             f"{ctx.alpha_fiabilidade * 100:.0f}%",
             help=f"Robustez estatística do cenário. Baseado em {ctx.n_concursos_total} concurso(s) histórico(s) "
-                 f"({ctx.n_concursos_cliente} do mesmo cliente, {ctx.n_concursos_mercado_zona} do mesmo mercado/zona) "
+                 f"({ctx.n_concursos_cliente} do mesmo cliente, {ctx.n_concursos_mercado_zona} da mesma unidade de negócio/zona) "
                  f"e {ctx.n_propostas_validas} proposta(s) válida(s)."
         )
     with c2:
@@ -806,7 +806,17 @@ def main():
             with col_in1:
                 lista_clientes = sorted(df_concursos['nome_cliente'].unique())
                 cliente_sel = st.selectbox("Cliente em Análise", lista_clientes)
-                mercado_sel = st.selectbox("Mercado do Concurso", ["Fiscalização", "Projeto", "Coordenação", "Construção"])
+                mercado_sel = st.selectbox("Unidade de Negócio", [
+                    "Infraestruturas de Transporte",
+                    "Sistema de Metro e Ferroviário",
+                    "Marítima e Portuária",
+                    "Água, Saneamento e Resíduos",
+                    "Cidades e Edifícios",
+                    "Sustentabilidade e Energia",
+                    "Real Estate",
+                    "Gestão e Supervisão da Construção",
+                    "GEOLAB"
+                ])
                 distrito_sel = st.selectbox("Zona / Distrito da Obra", ["Lisboa", "Norte", "Centro", "Sul", "Outro"])
             with col_in2:
                 preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
@@ -828,7 +838,7 @@ def main():
         if ctx.n_concursos_total < LIMIAR_AMOSTRA_MINIMA:
             st.warning(
                 f"Atenção: esta análise assenta apenas em {ctx.n_concursos_total} concurso(s) histórico(s) "
-                f"para este cliente/mercado/zona. Com menos de {LIMIAR_AMOSTRA_MINIMA} concursos, os indicadores "
+                f"para este cliente/unidade de negócio/zona. Com menos de {LIMIAR_AMOSTRA_MINIMA} concursos, os indicadores "
                 f"têm fiabilidade estatística reduzida e devem ser interpretados com cautela."
             )
 

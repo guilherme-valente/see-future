@@ -123,11 +123,11 @@ try:
                 df_geral = df_geral[df_geral['semestre'] == semestre_selecionado]
 
             tab_mercado, tab_regiao, tab_concorrencia, tab_precos, tab_future = st.tabs([
-                "Mercado", "Região", "Concorrência", "Preços", "Performance"
+                "Unidade de Negócio", "Região", "Concorrência", "Preços", "Performance"
             ])
 
             with tab_mercado:
-                st.subheader("Análise por Categoria de Mercado")
+                st.subheader("Análise por Categoria de Unidade de Negócio")
                 if not df_concursos.empty:
                     col1, col2 = st.columns(2)
                     stats_mercado = df_concursos.groupby('mercado').agg(
@@ -258,7 +258,7 @@ try:
 
                     with col_fut1:
                         with st.container(border=True):
-                            st.markdown("**Mercados onde ganhamos mais**")
+                            st.markdown("**Unidades de Negócio onde ganhamos mais**")
                             win_mercado = df_future[df_future['vencedor'] == True].groupby('mercado').size().reset_index(name='Vitórias').sort_values(by='Vitórias', ascending=False)
                             if not win_mercado.empty:
                                 st.dataframe(win_mercado, use_container_width=True, hide_index=True)

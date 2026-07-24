@@ -186,14 +186,14 @@ try:
 
                 with col_dist1:
                     with st.container(border=True):
-                        st.markdown("**Segmentação por Mercado**")
+                        st.markdown("**Segmentação por Unidade de Negócio**")
                         if not df_comp.empty and not df_comp['mercado'].dropna().empty:
                             dist_mercado = df_comp['mercado'].value_counts(normalize=True).reset_index()
-                            dist_mercado.columns = ['Mercado', 'Percentagem']
+                            dist_mercado.columns = ['Unidade de Negócio', 'Percentagem']
                             dist_mercado['Percentagem'] = (dist_mercado['Percentagem'] * 100).map('{:.1f}%'.format)
                             st.table(dist_mercado)
                         else:
-                            st.info("Sem dados de mercado.")
+                            st.info("Sem dados de Unidades de Negócio.")
 
                 with col_dist2:
                     with st.container(border=True):
