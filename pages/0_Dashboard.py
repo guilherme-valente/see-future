@@ -255,7 +255,7 @@ try:
             with g_col4:
                 with st.container(border=True):
                     stats_mercado = df_concursos_filtrado.groupby('mercado').size().reset_index(name='Quantidade')
-                    fig4 = px.pie(stats_mercado, values='Quantidade', names='mercado', hole=0.4, title="Distribuição de Concursos por Mercado")
+                    fig4 = px.pie(stats_mercado, values='Quantidade', names='mercado', hole=0.4, title="Distribuição de Concursos por Unidade de Negócio", color_discrete_sequence=px.colors.qualitative.Set3)
                     st.plotly_chart(fig4, use_container_width=True)
         else:
             st.info("Sem participações registadas para os filtros selecionados.")

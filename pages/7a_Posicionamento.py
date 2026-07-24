@@ -34,15 +34,6 @@ st.markdown(
         font-size: 26px !important;
         color: #0f172a !important;
     }
-    .fs-hero {
-        background: linear-gradient(135deg, #1b365d 0%, #274972 100%);
-        border-radius: 16px;
-        padding: 28px 32px;
-        color: white;
-        margin-bottom: 22px;
-    }
-    .fs-hero h1 { margin: 0; font-size: 26px; }
-    .fs-hero p { margin: 6px 0 0 0; opacity: 0.85; font-size: 14px; }
 
     .fs-card {
         background-color: #ffffff;
@@ -587,15 +578,8 @@ def gerar_insights(ctx: ContextoHistorico, preco_future, preco_otimo_info, valor
 # COMPONENTES DE INTERFACE
 # =============================================================================
 def render_hero():
-    st.markdown(
-        """
-        <div class="fs-hero">
-            <h1>Simulador de Cenário Concorrencial e Preço Alvo</h1>
-            <p>Estudo prospectivo de viabilidade comercial e análise de concorrência baseada em histórico.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.title("Simulador de Cenário Concorrencial e Preço Alvo")
+    st.caption("Estudo prospectivo de viabilidade comercial e análise de concorrência baseada em histórico.")
 
 
 def render_indicadores_calibracao(ctx: ContextoHistorico, preco_base_input):
@@ -777,11 +761,9 @@ def render_curva_sensibilidade(df_curva, preco_future, preco_otimo_info, valor_l
 def render_insights(insights):
     st.markdown("##### Insights Automáticos")
     classe_map = {"alerta": "fs-insight-alerta", "oportunidade": "fs-insight-oportunidade", "info": ""}
-    icone_map = {"alerta": "⚠️", "oportunidade": "💡", "info": "ℹ️"}
     for tipo, texto in insights:
         classe = classe_map.get(tipo, "")
-        icone = icone_map.get(tipo, "ℹ️")
-        st.markdown(f"<div class='fs-insight {classe}'>{icone} {texto}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='fs-insight {classe}'>{texto}</div>", unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -843,7 +825,7 @@ def main():
             )
 
         aba_visao, aba_concorrencia, aba_simulacao = st.tabs(
-            ["📊 Visão Geral", "🏢 Concorrência", "🎯 Simulação de Preço"]
+            ["Visão Geral", "Concorrência", "Simulação de Preço"]
         )
 
         with aba_visao:
