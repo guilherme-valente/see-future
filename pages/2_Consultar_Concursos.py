@@ -189,7 +189,7 @@ try:
             with c1:
                 pesquisa_texto = st.text_input("Referência ou Cliente", placeholder="Escreva o termo de pesquisa...")
             with c2:
-                filtro_mercado = st.multiselect("Mercado", options=sorted(df_concursos['mercado'].dropna().unique()))
+                filtro_mercado = st.multiselect("Unidade de Negócio", options=sorted(df_concursos['mercado'].dropna().unique()))
             with c3:
                 distritos_limpos = [d for d in df_concursos['Distrito'].unique() if d]
                 filtro_distrito = st.multiselect("Distrito", options=sorted(distritos_limpos))
@@ -221,7 +221,7 @@ try:
 
         if not df_filtrado.empty:
             df_resumo = df_filtrado[['referencia', 'Cliente', 'mercado', 'Distrito', 'preco_base', 'Nº Concorrentes', 'estado', 'data_concurso']].copy()
-            df_resumo.columns = ['Referência', 'Cliente', 'Mercado', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
+            df_resumo.columns = ['Referência', 'Cliente', 'Unidade de Negócio', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
 
             st.dataframe(df_resumo, use_container_width=True, hide_index=True)
             st.divider()
