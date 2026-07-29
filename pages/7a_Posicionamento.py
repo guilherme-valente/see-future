@@ -246,15 +246,12 @@ def processar_propostas(df_propostas_raw):
 
 def _soma_notas(notas_json):
     if isinstance(notas_json, dict):
-        valores = []
-        if notas_json.get('CVs', 0) > 0:
-            valores.append(notas_json['CVs'])
-        if notas_json.get('Metodologia', 0) > 0:
-            valores.append(notas_json['Metodologia'])
-        if notas_json.get('Afetacao', 0) > 0:
-            valores.append(notas_json['Afetacao'])
-        if len(valores) > 0:
-            return sum(valores) / len(valores)
+        criterios = ['CVs', 'Metodologia', 'Afetacao']
+        valores = [notas_json[c] for c in criterios if notas_json.get(c, 0) > 0]
+        if not valores:
+            return None
+        soma = sum(valores) / len(valores)
+        return soma if soma > 0 else None
     return None
 
 # =============================================================================
