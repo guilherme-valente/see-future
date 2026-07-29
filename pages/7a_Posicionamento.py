@@ -243,6 +243,7 @@ def processar_propostas(df_propostas_raw):
     df_empresa_exploded = pd.DataFrame(linhas)
     return df, df_empresa_exploded
 
+import math
 
 def _soma_notas(notas_json):
     if isinstance(notas_json, dict):
@@ -250,7 +251,11 @@ def _soma_notas(notas_json):
         valores = []
         for c in criterios:
             v = notas_json.get(c)
-            if v is not None and v > 0:
+            if v is None:
+                continue
+            if isinstance(v, float) and math.isnan(v):
+                continue
+            if v > 0:
                 valores.append(v)
         if not valores:
             return None
