@@ -246,7 +246,7 @@ def processar_propostas(df_propostas_raw):
 
 def _soma_notas(notas_json):
     if isinstance(notas_json, dict):
-        soma = notas_json.get('CVs', 0) + notas_json.get('Metodologia', 0) + notas_json.get('Afetacao', 0)
+        soma = (notas_json.get('CVs', 0) + notas_json.get('Metodologia', 0) + notas_json.get('Afetacao', 0))/3
         return soma if soma > 0 else None
     return None
 
