@@ -320,7 +320,7 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
         ctx.taxa_desclassificacao = df_prop_ctx['desclassificado'].mean()
 
     ctx.alpha_fiabilidade = min(
-        1.0, 0.05 + (ctx.n_concursos_total * 0.70) + (min(ctx.n_propostas_validas, 20) * 0.01)
+        1.0, 0.05 + (ctx.n_concursos_total * 0.10) + (min(ctx.n_propostas_validas, 20) * 0.01)
     )
    
     # Nível empresa (explodido)
