@@ -319,10 +319,16 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
         ctx.taxa_consorcio = ctx.n_propostas_consorcio / len(df_prop_ctx)
         ctx.taxa_desclassificacao = df_prop_ctx['desclassificado'].mean()
 
-    ctx.alpha_fiabilidade = min(
-        1.0, 0.05 + (ctx.n_concursos_total * 0.10) + (min(ctx.n_propostas_validas, 20) * 0.01)
+    score_hist = (
+        3 * ctx.n_concursos_cliente +
+        2 * ctx.n_concursos_mercado_zona +
+        0.3 * ctx.n_propostas_validas
     )
-
+    
+    ctx.alpha_fiabilidade = min(
+        1.0, 0.05 + 0.12 * np.log1p(score_hist)10
+    )
+   
     # Nível empresa (explodido)
     df_emp_ctx = df_empresa_exploded[df_empresa_exploded['concurso_id'].isin(ids_concursos)].copy()
     df_emp_validas = df_emp_ctx[df_emp_ctx['desclassificado'] == False].copy()
