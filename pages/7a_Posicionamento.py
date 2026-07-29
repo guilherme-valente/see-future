@@ -250,7 +250,7 @@ def _soma_notas(notas_json):
         valores = []
         for c in criterios:
             v = notas_json.get(c)
-            if v is not None and v > 0:
+            if v is not NULL and v > 0:
                 valores.append(v)
         if not valores:
             return None
