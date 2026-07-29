@@ -243,20 +243,10 @@ def processar_propostas(df_propostas_raw):
     df_empresa_exploded = pd.DataFrame(linhas)
     return df, df_empresa_exploded
 
-import math
-
 def _soma_notas(notas_json):
     if isinstance(notas_json, dict):
         criterios = ['CVs', 'Metodologia', 'Afetacao']
-        valores = []
-        for c in criterios:
-            v = notas_json.get(c)
-            if v is None:
-                continue
-            if isinstance(v, float) and math.isnan(v):
-                continue
-            if v > 0:
-                valores.append(v)
+        valores = [notas_json[c] for c in criterios if notas_json.get(c, 0) > 0]
         if not valores:
             return None
         soma = sum(valores) / len(valores)
