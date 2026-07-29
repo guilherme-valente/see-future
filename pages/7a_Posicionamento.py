@@ -246,10 +246,16 @@ def processar_propostas(df_propostas_raw):
 
 def _soma_notas(notas_json):
     if isinstance(notas_json, dict):
-        soma = (notas_json.get('CVs', 0) + notas_json.get('Metodologia', 0) + notas_json.get('Afetacao', 0))/3
-        return soma if soma > 0 else None
+        valores = []
+        if notas_json.get('CVs', 0) > 0:
+            valores.append(notas_json['CVs'])
+        if notas_json.get('Metodologia', 0) > 0:
+            valores.append(notas_json['Metodologia'])
+        if notas_json.get('Afetacao', 0) > 0:
+            valores.append(notas_json['Afetacao'])
+        if len(valores) > 0:
+            return sum(valores) / len(valores)
     return None
-
 
 # =============================================================================
 # CONTEXTO ESTATÍSTICO (histórico filtrado por cliente / unidade de negócio / zona)
