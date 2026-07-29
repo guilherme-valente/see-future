@@ -87,7 +87,7 @@ st.markdown(
 # =============================================================================
 # CONSTANTES
 # =============================================================================
-LIMIAR_AMOSTRA_MINIMA = 3
+LIMIAR_AMOSTRA_MINIMA = 10
 PESO_ESCALAO, PESO_MERCADO, PESO_ZONA, PESO_CLIENTE = 0.2, 0.2, 0.2, 0.4
 
 
