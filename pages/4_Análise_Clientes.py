@@ -192,7 +192,7 @@ try:
                 st.info("Não existem propostas registadas neste cliente para gerar os gráficos de escalão.")
 
             st.markdown("<br>", unsafe_allow_html=True)
-            col_tab1, col_tab2 = st.columns(2)
+            col_tab1, col_tab2, col_tab3 = st.columns(3)
 
             with col_tab1:
                 with st.container(border=True):
@@ -206,11 +206,21 @@ try:
 
             with col_tab2:
                 with st.container(border=True):
-                    st.markdown("**Distribuição Geográfica de Obras (Distrito do Concurso)**")
+                    st.markdown("**Distribuição de Concursos (Região/País)**")
                     if not df_conc_alvo.empty and 'distrito' in df_conc_alvo.columns and not df_conc_alvo['distrito'].dropna().empty:
                         freq_distritos = df_conc_alvo['distrito'].value_counts().reset_index()
-                        freq_distritos.columns = ['Distrito da Obra', 'Volume de Concursos Lançados']
+                        freq_distritos.columns = ['Distrito do Concurso', 'Volume de Concursos Lançados']
                         st.dataframe(freq_distritos, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("Sem dados geográficos registados para os concursos deste cliente.")
+
+            with col_tab3:
+                with st.container(border=True):
+                    st.markdown("**Distribuição de Concursos (País)**")
+                    if not df_conc_alvo.empty and 'pais' in df_conc_alvo.columns and not df_conc_alvo['pais'].dropna().empty:
+                        freq_pais = df_conc_alvo['pais'].value_counts().reset_index()
+                        freq_pais.columns = ['País do Concurso', 'Volume de Concursos Lançados']
+                        st.dataframe(freq_pais, use_container_width=True, hide_index=True)
                     else:
                         st.info("Sem dados geográficos registados para os concursos deste cliente.")
     else:
