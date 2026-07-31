@@ -37,13 +37,36 @@ def iniciar_ligacao():
 
 supabase: Client = iniciar_ligacao()
 
+@st.cache_data(ttl=300)
+def carregar_clientes():
+    resp = supabase.table("clientes").select("id, nome_cliente").order("nome_cliente").execute()
+    return resp.data if resp.data else []
+
+lista_clientes_bd = carregar_clientes()
+nomes_clientes_bd = [c["nome_cliente"] for c in lista_clientes_bd]
+
 with st.container(border=True):
     st.subheader("1. Dados Gerais do Concurso")
     col1, col2 = st.columns(2)
     
     with col1:
         referencia = st.text_input("Referência*")
-        cliente_nome = st.text_input("Cliente (Entidade Adjudicante)*")
+        OPCAO_NOVO_CLIENTE = "➕ Adicionar novo cliente..."
+        opcoes_cliente = [OPCAO_NOVO_CLIENTE] + nomes_clientes_bd
+
+        cliente_selecionado = st.selectbox(
+            "Cliente (Entidade Adjudicante)*",
+            opcoes_cliente,
+            index=None,
+            placeholder="Escreve para pesquisar ou selecionar..."
+        )
+
+        if cliente_selecionado == OPCAO_NOVO_CLIENTE:
+            cliente_nome = st.text_input("Nome do Novo Cliente*")
+        elif cliente_selecionado:
+            cliente_nome = cliente_selecionado
+        else:
+            cliente_nome = ""
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
         pais = st.selectbox("País", [
             "Portugal",
