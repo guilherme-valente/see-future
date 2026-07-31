@@ -28,6 +28,39 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Lista de países igual à usada no formulário "Novo Concurso", para manter consistência
+# entre a criação e a edição de um concurso.
+LISTA_PAISES = [
+    "Portugal", "Afeganistão", "África do Sul", "Albânia", "Alemanha", "Andorra", "Angola",
+    "Antígua e Barbuda", "Arábia Saudita", "Argélia", "Argentina", "Arménia", "Austrália",
+    "Áustria", "Azerbaijão", "Bahamas", "Bangladesh", "Barbados", "Barém", "Bélgica", "Belize",
+    "Benim", "Bielorrússia", "Bolívia", "Bósnia e Herzegovina", "Botsuana", "Brasil", "Brunei",
+    "Bulgária", "Burquina Faso", "Burundi", "Butão", "Cabo Verde", "Camarões", "Camboja",
+    "Canadá", "Catar", "Cazaquistão", "Chade", "Chile", "China", "Chipre", "Colômbia",
+    "Comores", "Congo", "Coreia do Norte", "Coreia do Sul", "Costa do Marfim", "Costa Rica",
+    "Croácia", "Cuba", "Dinamarca", "Djibuti", "Dominica", "Egito", "El Salvador",
+    "Emirados Árabes Unidos", "Equador", "Eritreia", "Eslováquia", "Eslovénia", "Espanha",
+    "Estados Unidos", "Estónia", "Essuatíni", "Etiópia", "Fiji", "Filipinas", "Finlândia",
+    "França", "Gabão", "Gâmbia", "Gana", "Geórgia", "Granada", "Grécia", "Guatemala", "Guiana",
+    "Guiné", "Guiné-Bissau", "Guiné Equatorial", "Haiti", "Honduras", "Hungria", "Iémen",
+    "Ilhas Marshall", "Ilhas Salomão", "Índia", "Indonésia", "Irão", "Iraque", "Irlanda",
+    "Islândia", "Israel", "Itália", "Jamaica", "Japão", "Jordânia", "Kiribati", "Kuwait",
+    "Laos", "Lesoto", "Letónia", "Líbano", "Libéria", "Líbia", "Listenstaine", "Lituânia",
+    "Luxemburgo", "Macedónia do Norte", "Madagáscar", "Malásia", "Maláui", "Maldivas", "Mali",
+    "Malta", "Marrocos", "Maurícia", "Mauritânia", "México", "Micronésia", "Moçambique",
+    "Moldávia", "Mónaco", "Mongólia", "Montenegro", "Myanmar", "Namíbia", "Nauru", "Nepal",
+    "Nicarágua", "Níger", "Nigéria", "Noruega", "Nova Zelândia", "Omã", "Países Baixos",
+    "Palau", "Panamá", "Papua-Nova Guiné", "Paquistão", "Paraguai", "Peru", "Polónia",
+    "Quénia", "Quirguistão", "Reino Unido", "República Centro-Africana", "República Checa",
+    "República Democrática do Congo", "República Dominicana", "Roménia", "Ruanda", "Rússia",
+    "São Cristóvão e Neves", "São Marinho", "São Tomé e Príncipe", "São Vicente e Granadinas",
+    "Seicheles", "Senegal", "Serra Leoa", "Sérvia", "Singapura", "Síria", "Somália",
+    "Sri Lanka", "Sudão", "Sudão do Sul", "Suécia", "Suíça", "Suriname", "Tailândia",
+    "Tajiquistão", "Tanzânia", "Timor-Leste", "Togo", "Tonga", "Trindade e Tobago", "Tunísia",
+    "Turcomenistão", "Turquia", "Tuvalu", "Ucrânia", "Uganda", "Uruguai", "Uzbequistão",
+    "Vanuatu", "Vaticano", "Venezuela", "Vietname", "Zâmbia", "Zimbabwe"
+]
+
 @st.cache_resource
 def iniciar_ligacao():
     url = st.secrets["SUPABASE_URL"]
@@ -171,6 +204,21 @@ try:
 
         df_concursos['data_concurso'] = pd.to_datetime(df_concursos['data_concurso'], errors='coerce').dt.date
         df_concursos = df_concursos.dropna(subset=['data_concurso'])
+
+        # A data de submissão recebe o mesmo tratamento que a data do concurso.
+        # Não é feito dropna aqui: concursos antigos podem não ter esta data preenchida,
+        # e não queremos excluí-los da consulta por isso.
+        if 'data_submissao' in df_concursos.columns:
+            df_concursos['data_submissao'] = pd.to_datetime(df_concursos['data_submissao'], errors='coerce').dt.date
+        else:
+            df_concursos['data_submissao'] = pd.NaT
+
+        # País: normalizar para string, com fallback para concursos antigos sem este campo
+        if 'pais' in df_concursos.columns:
+            df_concursos['Pais'] = df_concursos['pais'].apply(lambda x: str(x) if pd.notna(x) and str(x).strip() else 'Não definido')
+        else:
+            df_concursos['Pais'] = 'Não definido'
+
         df_concursos['Cliente'] = df_concursos['clientes'].apply(lambda x: x.get('nome_cliente', '') if isinstance(x, dict) else '')
         df_concursos['Distrito'] = df_concursos['distrito'].apply(lambda x: str(x) if pd.notna(x) else '')
 
@@ -185,7 +233,7 @@ try:
         data_maxima = df_concursos['data_concurso'].max()
 
         with st.expander("Abrir Filtros de Pesquisa", expanded=True):
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 pesquisa_texto = st.text_input("Referência ou Cliente", placeholder="Escreva o termo de pesquisa...")
             with c2:
@@ -196,6 +244,9 @@ try:
             with c4:
                 filtro_estado = st.multiselect("Estado", options=df_concursos['estado'].dropna().unique())
             with c5:
+                paises_limpos = [p for p in df_concursos['Pais'].unique() if p]
+                filtro_pais = st.multiselect("País", options=sorted(paises_limpos))
+            with c6:
                 filtro_datas = st.date_input("Intervalo de Datas", value=(data_minima, data_maxima))
 
         df_filtrado = df_concursos.copy()
@@ -212,6 +263,8 @@ try:
             df_filtrado = df_filtrado[df_filtrado['Distrito'].isin(filtro_distrito)]
         if filtro_estado:
             df_filtrado = df_filtrado[df_filtrado['estado'].isin(filtro_estado)]
+        if filtro_pais:
+            df_filtrado = df_filtrado[df_filtrado['Pais'].isin(filtro_pais)]
 
         if isinstance(filtro_datas, (tuple, list)) and len(filtro_datas) == 2:
             data_inicio, data_fim = filtro_datas
@@ -220,8 +273,8 @@ try:
         st.markdown(f"**Resultados Encontrados:** {len(df_filtrado)} concursos")
 
         if not df_filtrado.empty:
-            df_resumo = df_filtrado[['referencia', 'Cliente', 'mercado', 'Distrito', 'preco_base', 'Nº Concorrentes', 'estado', 'data_concurso']].copy()
-            df_resumo.columns = ['Referência', 'Cliente', 'Unidade de Negócio', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
+            df_resumo = df_filtrado[['referencia', 'Cliente', 'Pais', 'mercado', 'Distrito', 'preco_base', 'Nº Concorrentes', 'estado', 'data_concurso']].copy()
+            df_resumo.columns = ['Referência', 'Cliente', 'País', 'Unidade de Negócio', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
 
             st.dataframe(df_resumo, use_container_width=True, hide_index=True)
             st.divider()
@@ -249,12 +302,22 @@ try:
                             estados_possiveis = ["Aberto", "Em Avaliação", "Fechado", "Adjudicado"]
                             estado_atual = dados_cc['estado'] if dados_cc['estado'] in estados_possiveis else "Aberto"
                             novo_estado = st.selectbox("Alterar Estado", estados_possiveis, index=estados_possiveis.index(estado_atual))
+
+                            pais_atual = dados_cc['Pais'] if dados_cc['Pais'] and dados_cc['Pais'] != 'Não definido' else "Portugal"
+                            novo_pais = st.selectbox(
+                                "Alterar País",
+                                LISTA_PAISES,
+                                index=LISTA_PAISES.index(pais_atual) if pais_atual in LISTA_PAISES else 0
+                            )
                         with col_ed2:
                             if novo_estado == "Adjudicado":
                                 data_adj_padrao = pd.to_datetime(dados_cc.get('data_adjudicacao')).date() if pd.notna(dados_cc.get('data_adjudicacao')) else dados_cc['data_concurso']
                                 data_adjudicacao_ed = st.date_input("Data de Adjudicação", value=data_adj_padrao)
                             else:
                                 data_adjudicacao_ed = None
+
+                            data_submissao_padrao = dados_cc['data_submissao'] if pd.notna(dados_cc.get('data_submissao')) else dados_cc['data_concurso']
+                            nova_data_submissao = st.date_input("Alterar Data de Submissão", value=data_submissao_padrao)
 
                     st.caption("Para propostas em consórcio/agrupamento, separa as empresas por ponto-e-vírgula, com o líder em primeiro lugar. Ex: 'Empresa A; Empresa B'")
 
@@ -331,6 +394,8 @@ try:
 
                                     dados_update = {
                                         "estado": novo_estado,
+                                        "pais": novo_pais,
+                                        "data_submissao": str(nova_data_submissao) if nova_data_submissao else None,
                                         "data_adjudicacao": str(data_adjudicacao_ed) if novo_estado == "Adjudicado" and data_adjudicacao_ed else None
                                     }
                                     supabase.table("concursos").update(dados_update).eq("id", concurso_id_limpo).execute()
@@ -386,12 +451,15 @@ try:
                         colA, colB, colC = st.columns(3)
                         with colA:
                             st.markdown(f"**Cliente:** {dados_cc['Cliente']}")
+                            st.markdown(f"**País:** {dados_cc['Pais']}")
                             st.markdown(f"**Distrito:** {dados_cc['Distrito'] if dados_cc['Distrito'] else 'Não definido'}")
                             st.markdown(f"**Unidade de Negócio:** {dados_cc['mercado']}")
                         with colB:
                             st.markdown(f"**Preço Base:** {formatar_moeda(dados_cc['preco_base'])}")
                             st.markdown(f"**Prazo:** {dados_cc['prazo_dias']} dias")
-                            st.markdown(f"**Data:** {dados_cc['data_concurso']}")
+                            st.markdown(f"**Data do Concurso:** {dados_cc['data_concurso']}")
+                            data_submissao_mostrar = dados_cc['data_submissao'] if pd.notna(dados_cc.get('data_submissao')) else "Não definida"
+                            st.markdown(f"**Data de Submissão:** {data_submissao_mostrar}")
                         with colC:
                             st.markdown(f"**Estado:** {dados_cc['estado']}")
                             st.markdown("**Critério de Adjudicação:**")
