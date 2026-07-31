@@ -238,7 +238,7 @@ with st.container(border=True):
             "Vietname",
             "Zâmbia",
             "Zimbabwe"
-]
+])
         mercado = st.selectbox("Unidade de Negócio", [
             "Infraestruturas de Transporte",
             "Sistema de Metro e Ferroviário",
