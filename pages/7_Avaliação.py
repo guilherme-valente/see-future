@@ -84,8 +84,8 @@ def formatar_moeda(valor):
 
 def defining_escalao(valor):
     if valor < 50000: return "Micro (Até 50k€)"
-    elif valor < 150000: return "Médio (50k€ a 150k€)"
-    elif valor < 500000: return "Grande (150k€ a 500k€)"
+    elif valor < 250000: return "Médio (50k€ a 250k€)"
+    elif valor < 500000: return "Grande (250k€ a 500k€)"
     else: return "Especial (Superior a 500k€)"
 
 try:
