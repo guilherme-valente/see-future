@@ -807,7 +807,7 @@ def main():
                     "GEOLAB"
                 ])
                 distrito_sel = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
-                pais_sel = st.selectbox("País",
+                pais_sel = st.selectbox("País", [
             "Portugal",
             "Afeganistão",
             "África do Sul",
