@@ -101,6 +101,7 @@ try:
     if not df_concursos.empty:
         df_concursos['nome_cliente'] = df_concursos['clientes'].apply(lambda x: x.get('nome_cliente', 'Desconhecido') if isinstance(x, dict) else 'Desconhecido')
         df_concursos['Regiao'] = df_concursos['distrito'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
+        df_concursos['Pais'] = df_concursos['pais'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
         df_concursos['escalao'] = df_concursos['preco_base'].apply(defining_escalao) 
     
     if not df_propostas.empty:
@@ -168,6 +169,10 @@ try:
             "GEOLAB"
         ])
                     distrito_sel = st.selectbox("Zona / Distrito da Obra", ["Lisboa", "Norte", "Centro", "Sul", "Outro"])
+                    lista_paises = sorted(df_concursos['Pais'].dropna().unique().tolist()) if 'Pais' in df_concursos.columns else []
+                    if not lista_paises:
+                        lista_paises = ["Portugal", "Outro"]
+                    pais_sel = st.selectbox("País da Obra", lista_paises)
 
                 with col_in2:
                     preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
@@ -187,7 +192,8 @@ try:
             # --- PROCESSAMENTO DO MOTOR ESTATÍSTICO ---
             filtro_historico = df_concursos[
                 (df_concursos['nome_cliente'] == cliente_sel) | 
-                ((df_concursos['mercado'] == mercado_sel) & (df_concursos['distrito'] == distrito_sel))
+                ((df_concursos['mercado'] == mercado_sel) & (df_concursos['distrito'] == distrito_sel)) |
+                (df_concursos['Pais'] == pais_sel)
             ]
             
             alpha_fiabilidade = 0.1
@@ -203,7 +209,7 @@ try:
                 alpha_fiabilidade = min(1.0, 0.1 + (len(filtro_historico) * 0.15))
                 
                 if not df_propostas_validas.empty:
-                    df_cruzado = pd.merge(df_propostas_validas, filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'nome_cliente']], left_on='concurso_id', right_on='id')
+                    df_cruzado = pd.merge(df_propostas_validas, filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'Pais', 'nome_cliente']], left_on='concurso_id', right_on='id')
                     df_cruzado['desconto'] = (df_cruzado['preco_base'] - df_cruzado['valor_proposto']) / df_cruzado['preco_base']
                     media_desc = df_cruzado['desconto'].mean()
                     if pd.notna(media_desc):
@@ -230,8 +236,9 @@ try:
                             match_escalao = df_emp['escalao'].eq(escalao_sim).sum()
                             match_mercado = df_emp['mercado'].eq(mercado_sel).sum()
                             match_zona = df_emp['distrito'].eq(distrito_sel).sum()
+                            match_pais = df_emp['Pais'].eq(pais_sel).sum()
                             
-                            score_presenca = (match_cliente * 0.4) + (match_escalao * 0.2) + (match_mercado * 0.2) + (match_zona * 0.2)
+                            score_presenca = (match_cliente * 0.35) + (match_escalao * 0.15) + (match_mercado * 0.15) + (match_zona * 0.2) + (match_pais * 0.15)
                             prob_participacao = min(95.0, 15.0 + (score_presenca / max(1, total_concursos_contexto)) * 100)
                             
                             desc_medio_emp = df_emp['desconto'].mean() if not df_emp['desconto'].empty else desconto_medio_esperado
@@ -258,13 +265,13 @@ try:
                 st.metric(
                     label="Índice de Fiabilidade Analítica (alpha)", 
                     value=f"{alpha_fiabilidade * 100:.0f}%",
-                    help="Representa a robustez estatística do cenário calculado. Baseado no volume de dados históricos encontrados na base de dados para o cliente e região selecionados. Quanto maior a amostra, mais próximo de 100% estará o indicador."
+                    help="Representa a robustez estatística do cenário calculado. Baseado no volume de dados históricos encontrados na base de dados para o cliente, região e país selecionados. Quanto maior a amostra, mais próximo de 100% estará o indicador."
                 )
             with col_m2:
                 st.metric(
                     label="Preço Médio Estimado da Concorrência", 
                     value=formatar_moeda(preco_base_input * (1 - desconto_medio_esperado)),
-                    help="Valor de proposta médio esperado. Resulta da aplicação da taxa média de desconto histórico praticada por concorrentes (neste cliente ou unidade de negócio) sobre o preço base actual do concurso."
+                    help="Valor de proposta médio esperado. Resulta da aplicação da taxa média de desconto histórico praticada por concorrentes (neste cliente, unidade de negócio ou país) sobre o preço base actual do concurso."
                 )
             with col_m3:
                 st.metric(
