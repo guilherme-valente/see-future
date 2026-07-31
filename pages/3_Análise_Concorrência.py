@@ -219,7 +219,7 @@ try:
 
                 with col_dist4:
                     with st.container(border=True):
-                        st.markdowmn("**Segmentação por País**")
+                        st.markdown("**Segmentação por País**")
                         if not df_comp.empty and 'pais' in df_comp.columns and not df_comp['pais'].dropna().empty:
                             dist_pais = df_comp['pais'].value_counts(normalize=True).reset_index()
                             dist_pais.columns = ['País', 'Percentagem']
