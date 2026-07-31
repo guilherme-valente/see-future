@@ -1006,7 +1006,6 @@ def main():
             "Zimbabwe"
 ])
                 escalao_sim = definir_escalao(preco_base_input)
-                st.caption(f"Escalão Financeiro Identificado: {escalao_sim}")
                 
             with col_in3:
                 limiar_anormal = st.number_input("Limiar Preço Anormalmente Baixo (% do Valor Base)", min_value=10.0, max_value=90.0, value=60.0, step=1.0)
