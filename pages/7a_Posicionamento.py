@@ -88,7 +88,7 @@ st.markdown(
 # CONSTANTES
 # =============================================================================
 LIMIAR_AMOSTRA_MINIMA = 10
-PESO_ESCALAO, PESO_MERCADO, PESO_ZONA, PESO_CLIENTE = 0.2, 0.2, 0.2, 0.4
+PESO_ESCALAO, PESO_MERCADO, PESO_ZONA, PESO_CLIENTE, PESO_PAIS = 0.25, 0.25, 0.1, 0.3, 0.1
 
 
 # =============================================================================
@@ -170,6 +170,7 @@ def processar_concursos(df_concursos):
         lambda x: x.get('nome_cliente', 'Desconhecido') if isinstance(x, dict) else 'Desconhecido'
     )
     df['Regiao'] = df['distrito'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
+    df['Pais'] = df['pais'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
     df['escalao'] = df['preco_base'].apply(definir_escalao)
 
     col_data_candidatos = ['data_concurso', 'data_publicacao', 'data_abertura', 'created_at', 'data']
@@ -295,11 +296,11 @@ class ContextoHistorico:
 
 
 def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_sel, mercado_sel,
-                       distrito_sel, escalao_sim, preco_base_input):
+                       distrito_sel, pais_sel, escalao_sim, preco_base_input):
     ctx = ContextoHistorico()
 
     filtro_cliente = df_concursos['nome_cliente'] == cliente_sel
-    filtro_mercado_zona = (df_concursos['mercado'] == mercado_sel) & (df_concursos['distrito'] == distrito_sel)
+    filtro_mercado_zona = (df_concursos['mercado'] == mercado_sel) & (df_concursos['distrito'] == distrito_sel) & (df_concursos['pais'] == pais_sel)
     filtro_historico = df_concursos[filtro_cliente | filtro_mercado_zona]
 
     ctx.n_concursos_cliente = int(filtro_cliente.sum())
@@ -395,7 +396,7 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
     # Tabela de concorrentes (nível empresa)
     df_emp_cruzado = pd.merge(
         df_emp_validas,
-        filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'nome_cliente']],
+        filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'pais', 'nome_cliente']],
         left_on='concurso_id', right_on='id'
     )
     df_emp_cruzado['desconto'] = (df_emp_cruzado['preco_base'] - df_emp_cruzado['valor_proposto']) / df_emp_cruzado['preco_base']
@@ -411,10 +412,14 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
             match_escalao = df_emp['escalao'].eq(escalao_sim).sum()
             match_mercado = df_emp['mercado'].eq(mercado_sel).sum()
             match_zona = df_emp['distrito'].eq(distrito_sel).sum()
+            match_pais = df_emp['pais'].eq(pais_sel).sum()
 
             score_presenca = (
-                match_cliente * PESO_CLIENTE + match_escalao * PESO_ESCALAO +
-                match_mercado * PESO_MERCADO + match_zona * PESO_ZONA
+                match_cliente * PESO_CLIENTE + 
+                match_escalao * PESO_ESCALAO +
+                match_mercado * PESO_MERCADO + 
+                match_zona * PESO_ZONA +  
+                match_pais * PESO_PAIS
             )
             prob_participacao = min(95.0, 15.0 + (score_presenca / max(1, total_concursos_ctx)) * 100)
             desc_medio_emp = df_emp['desconto'].mean() if not df_emp['desconto'].empty else ctx.desconto_medio
@@ -592,7 +597,7 @@ def render_indicadores_calibracao(ctx: ContextoHistorico, preco_base_input):
             "Índice de Fiabilidade Analítica (alpha)",
             f"{ctx.alpha_fiabilidade * 100:.0f}%",
             help=f"Robustez estatística do cenário. Baseado em {ctx.n_concursos_total} concurso(s) histórico(s) "
-                 f"({ctx.n_concursos_cliente} do mesmo cliente, {ctx.n_concursos_mercado_zona} da mesma unidade de negócio/zona) "
+                 f"({ctx.n_concursos_cliente} do mesmo cliente, {ctx.n_concursos_mercado_zona} da mesma unidade de negócio/região/país) "
                  f"e {ctx.n_propostas_validas} proposta(s) válida(s)."
         )
     with c2:
@@ -801,7 +806,201 @@ def main():
                     "Gestão e Supervisão da Construção",
                     "GEOLAB"
                 ])
-                distrito_sel = st.selectbox("Zona / Distrito da Obra", ["Lisboa", "Norte", "Centro", "Sul", "Outro"])
+                distrito_sel = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
+                pais_sel = st.selectbox("País",
+            "Portugal",
+            "Afeganistão",
+            "África do Sul",
+            "Albânia",
+            "Alemanha",
+            "Andorra",
+            "Angola",
+            "Antígua e Barbuda",
+            "Arábia Saudita",
+            "Argélia",
+            "Argentina",
+            "Arménia",
+            "Austrália",
+            "Áustria",
+            "Azerbaijão",
+            "Bahamas",
+            "Bangladesh",
+            "Barbados",
+            "Barém",
+            "Bélgica",
+            "Belize",
+            "Benim",
+            "Bielorrússia",
+            "Bolívia",
+            "Bósnia e Herzegovina",
+            "Botsuana",
+            "Brasil",
+            "Brunei",
+            "Bulgária",
+            "Burquina Faso",
+            "Burundi",
+            "Butão",
+            "Cabo Verde",
+            "Camarões",
+            "Camboja",
+            "Canadá",
+            "Catar",
+            "Cazaquistão",
+            "Chade",
+            "Chile",
+            "China",
+            "Chipre",
+            "Colômbia",
+            "Comores",
+            "Congo",
+            "Coreia do Norte",
+            "Coreia do Sul",
+            "Costa do Marfim",
+            "Costa Rica",
+            "Croácia",
+            "Cuba",
+            "Dinamarca",
+            "Djibuti",
+            "Dominica",
+            "Egito",
+            "El Salvador",
+            "Emirados Árabes Unidos",
+            "Equador",
+            "Eritreia",
+            "Eslováquia",
+            "Eslovénia",
+            "Espanha",
+            "Estados Unidos",
+            "Estónia",
+            "Essuatíni",
+            "Etiópia",
+            "Fiji",
+            "Filipinas",
+            "Finlândia",
+            "França",
+            "Gabão",
+            "Gâmbia",
+            "Gana",
+            "Geórgia",
+            "Granada",
+            "Grécia",
+            "Guatemala",
+            "Guiana",
+            "Guiné",
+            "Guiné-Bissau",
+            "Guiné Equatorial",
+            "Haiti",
+            "Honduras",
+            "Hungria",
+            "Iémen",
+            "Ilhas Marshall",
+            "Ilhas Salomão",
+            "Índia",
+            "Indonésia",
+            "Irão",
+            "Iraque",
+            "Irlanda",
+            "Islândia",
+            "Israel",
+            "Itália",
+            "Jamaica",
+            "Japão",
+            "Jordânia",
+            "Kiribati",
+            "Kuwait",
+            "Laos",
+            "Lesoto",
+            "Letónia",
+            "Líbano",
+            "Libéria",
+            "Líbia",
+            "Listenstaine",
+            "Lituânia",
+            "Luxemburgo",
+            "Macedónia do Norte",
+            "Madagáscar",
+            "Malásia",
+            "Maláui",
+            "Maldivas",
+            "Mali",
+            "Malta",
+            "Marrocos",
+            "Maurícia",
+            "Mauritânia",
+            "México",
+            "Micronésia",
+            "Moçambique",
+            "Moldávia",
+            "Mónaco",
+            "Mongólia",
+            "Montenegro",
+            "Myanmar",
+            "Namíbia",
+            "Nauru",
+            "Nepal",
+            "Nicarágua",
+            "Níger",
+            "Nigéria",
+            "Noruega",
+            "Nova Zelândia",
+            "Omã",
+            "Países Baixos",
+            "Palau",
+            "Panamá",
+            "Papua-Nova Guiné",
+            "Paquistão",
+            "Paraguai",
+            "Peru",
+            "Polónia",
+            "Quénia",
+            "Quirguistão",
+            "Reino Unido",
+            "República Centro-Africana",
+            "República Checa",
+            "República Democrática do Congo",
+            "República Dominicana",
+            "Roménia",
+            "Ruanda",
+            "Rússia",
+            "São Cristóvão e Neves",
+            "São Marinho",
+            "São Tomé e Príncipe",
+            "São Vicente e Granadinas",
+            "Seicheles",
+            "Senegal",
+            "Serra Leoa",
+            "Sérvia",
+            "Singapura",
+            "Síria",
+            "Somália",
+            "Sri Lanka",
+            "Sudão",
+            "Sudão do Sul",
+            "Suécia",
+            "Suíça",
+            "Suriname",
+            "Tailândia",
+            "Tajiquistão",
+            "Tanzânia",
+            "Timor-Leste",
+            "Togo",
+            "Tonga",
+            "Trindade e Tobago",
+            "Tunísia",
+            "Turcomenistão",
+            "Turquia",
+            "Tuvalu",
+            "Ucrânia",
+            "Uganda",
+            "Uruguai",
+            "Uzbequistão",
+            "Vanuatu",
+            "Vaticano",
+            "Venezuela",
+            "Vietname",
+            "Zâmbia",
+            "Zimbabwe"
+])
             with col_in2:
                 preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
                 criterio_sel = st.selectbox("Critério de Avaliação", ["Preço Mais Baixo", "Qualidade/Preço (Fatores Ponderados)"])
@@ -817,7 +1016,7 @@ def main():
 
         # --- CONTEXTO HISTÓRICO ---
         ctx = calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_sel,
-                                 mercado_sel, distrito_sel, escalao_sim, preco_base_input)
+                                 mercado_sel, distrito_sel, pais_sel, escalao_sim, preco_base_input)
 
         if ctx.n_concursos_total < LIMIAR_AMOSTRA_MINIMA:
             st.warning(
