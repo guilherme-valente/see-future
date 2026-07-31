@@ -182,7 +182,7 @@ try:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("Distribuição do Concorrente por Categoria")
 
-                col_dist1, col_dist2, col_dist3 = st.columns(3)
+                col_dist1, col_dist2, col_dist3, col_dist4 = st.columns(4)
 
                 with col_dist1:
                     with st.container(border=True):
@@ -208,7 +208,7 @@ try:
 
                 with col_dist3:
                     with st.container(border=True):
-                        st.markdown("**Segmentação por Distrito**")
+                        st.markdown("**Segmentação por Região/Distrito**")
                         if not df_comp.empty and 'distrito' in df_comp.columns and not df_comp['distrito'].dropna().empty:
                             dist_distrito = df_comp['distrito'].value_counts(normalize=True).reset_index()
                             dist_distrito.columns = ['Distrito', 'Percentagem']
@@ -216,6 +216,18 @@ try:
                             st.table(dist_distrito)
                         else:
                             st.info("Sem dados geográficos.")
+
+                with col_dist4:
+                    with st.container(border=True):
+                        st.markdowmn("**Segmentação por País**")
+                        if not df_comp.empty and 'pais' in df_comp.columns and not df_comp['pais'].dropna().empty:
+                            dist_pais = df_comp['pais'].value_counts(normalize=True).reset_index()
+                            dist_pais.columns = ['País', 'Percentagem']
+                            dist_pais['Percentagem'] = (dist_distrito['Percentagem'] * 100).map('{:.1f}%'.format)
+                            st.table(dist_pais)
+                        else: 
+                            st.info("Sem dados geográficos.")
+                        
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("Análise por Escalão de Preço Base")
