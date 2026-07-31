@@ -93,6 +93,7 @@ try:
 
         df_concursos['nome_cliente'] = df_concursos['clientes'].apply(lambda x: x.get('nome_cliente', 'Desconhecido') if isinstance(x, dict) else 'Desconhecido')
         df_concursos['Regiao'] = df_concursos['distrito'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
+        df_concursos['Pais'] = df_concursos['pais'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
         df_concursos['escalao'] = df_concursos['preco_base'].apply(definir_escalao)
         df_concursos['data_concurso'] = pd.to_datetime(df_concursos['data_concurso'], errors='coerce')
         df_concursos = df_concursos.dropna(subset=['data_concurso'])
@@ -168,6 +169,29 @@ try:
                             st.dataframe(tabela_r, use_container_width=True, hide_index=True)
                 else:
                     st.info("Sem dados de região para os filtros selecionados.")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.subheader("Análise por País")
+                if not df_concursos.empty:
+                    col_p1, col_p2 = st.columns(2)
+                    stats_pais = df_concursos.groupby('Pais').agg(
+                        Num_Concursos=('id', 'count'),
+                        Valor_Total=('preco_base', 'sum')
+                    ).reset_index().sort_values(by='Num_Concursos', ascending=False)
+
+                    with col_p1:
+                        with st.container(border=True):
+                            fig_p1 = px.bar(stats_pais, x='Pais', y='Num_Concursos', title="Volume de Concursos por País", color_discrete_sequence=['#36B37E'])
+                            st.plotly_chart(fig_p1, use_container_width=True)
+                    with col_p2:
+                        with st.container(border=True):
+                            st.markdown("**Tabela Detalhada por País**")
+                            tabela_p = stats_pais.copy()
+                            tabela_p['Valor_Total'] = tabela_p['Valor_Total'].apply(formatar_moeda)
+                            tabela_p.columns = ['País', 'Nº de Concursos', 'Valor Base Total']
+                            st.dataframe(tabela_p, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sem dados de país para os filtros selecionados.")
 
             with tab_concorrencia:
                 st.subheader("Análise Global da Concorrência")
