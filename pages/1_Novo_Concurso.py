@@ -46,7 +46,8 @@ with st.container(border=True):
         cliente_nome = st.text_input("Cliente (Entidade Adjudicante)*")
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
         pais = st.selectbox("País", [
-           "Afeganistão",
+            "Portugal",
+            "Afeganistão",
             "África do Sul",
             "Albânia",
             "Alemanha",
@@ -189,7 +190,6 @@ with st.container(border=True):
             "Paraguai",
             "Peru",
             "Polónia",
-            "Portugal",
             "Quénia",
             "Quirguistão",
             "Reino Unido",
