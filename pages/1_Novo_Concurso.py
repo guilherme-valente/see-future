@@ -51,7 +51,7 @@ with st.container(border=True):
     
     with col1:
         referencia = st.text_input("Referência*")
-        OPCAO_NOVO_CLIENTE = "➕ Adicionar novo cliente..."
+        OPCAO_NOVO_CLIENTE = "**+** Adicionar novo cliente..."
         opcoes_cliente = [OPCAO_NOVO_CLIENTE] + nomes_clientes_bd
 
         cliente_selecionado = st.selectbox(
