@@ -163,7 +163,7 @@ try:
             st.subheader("Métricas por Escalão de Preço")
 
             if not df_prop_alvo.empty:
-                ordem_escaloes = ["< 50k€", "50k€ - 150k€", "150k€ - 500k€", "> 500k€"]
+                ordem_escaloes = ["< 50k€", "50k€ - 250k€", "250k€ - 500k€", "> 500k€"]
                 df_conc_alvo['escalao'] = pd.Categorical(df_conc_alvo['escalao'], categories=ordem_escaloes, ordered=True)
                 df_prop_alvo['escalao'] = pd.Categorical(df_prop_alvo['escalao'], categories=ordem_escaloes, ordered=True)
 
