@@ -221,7 +221,7 @@ try:
                 st.subheader("Análise por Escalão de Preço Base")
 
                 if not df_comp.empty:
-                    ordem_escaloes = ["< 50k€", "50k€ - 150k€", "150k€ - 500k€", "> 500k€"]
+                    ordem_escaloes = ["< 50k€", "50k€ - 250k€", "250k€ - 500k€", "> 500k€"]
                     df_comp['escalao'] = pd.Categorical(df_comp['escalao'], categories=ordem_escaloes, ordered=True)
 
                     g_col1, g_col2 = st.columns(2)
