@@ -47,8 +47,8 @@ def definir_escalao(valor):
     if pd.isna(valor):
         return "Não Definido"
     if valor < 50000: return "< 50k€"
-    elif valor < 150000: return "50k€ - 150k€"
-    elif valor < 500000: return "150k€ - 500k€"
+    elif valor < 250000: return "50k€ - 250k€"
+    elif valor < 500000: return "250k€ - 500k€"
     else: return "> 500k€"
 
 def explodir_propostas(df_propostas_raw):
