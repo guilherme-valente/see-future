@@ -373,7 +373,7 @@ if submetido:
                 "preco_base": preco_base,
                 "prazo_dias": prazo_dias,
                 "data_concurso": str(data_concurso),
-                "data_submissao": str(data_submissao)
+                "data_submissao": str(data_submissao),
                 "criterio_adjudicacao": ponderacao_final,
                 "estado": estado
             }
