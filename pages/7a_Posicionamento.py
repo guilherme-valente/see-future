@@ -109,10 +109,10 @@ def formatar_percentagem(valor, casas=1):
 def definir_escalao(valor):
     if valor < 50000:
         return "Micro (Até 50k€)"
-    elif valor < 150000:
-        return "Médio (50k€ a 150k€)"
+    elif valor < 250000:
+        return "Médio (50k€ a 250k€)"
     elif valor < 500000:
-        return "Grande (150k€ a 500k€)"
+        return "Grande (250k€ a 500k€)"
     else:
         return "Especial (Superior a 500k€)"
 
@@ -807,6 +807,10 @@ def main():
                     "GEOLAB"
                 ])
                 distrito_sel = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
+                
+            with col_in2:
+                preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
+                criterio_sel = st.selectbox("Critério de Avaliação", ["Preço Mais Baixo", "Qualidade/Preço (Fatores Ponderados)"])
                 pais_sel = st.selectbox("País", [
             "Portugal",
             "Afeganistão",
@@ -1001,11 +1005,9 @@ def main():
             "Zâmbia",
             "Zimbabwe"
 ])
-            with col_in2:
-                preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
-                criterio_sel = st.selectbox("Critério de Avaliação", ["Preço Mais Baixo", "Qualidade/Preço (Fatores Ponderados)"])
                 escalao_sim = definir_escalao(preco_base_input)
                 st.caption(f"Escalão Financeiro Identificado: {escalao_sim}")
+                
             with col_in3:
                 limiar_anormal = st.number_input("Limiar Preço Anormalmente Baixo (% do Valor Base)", min_value=10.0, max_value=90.0, value=60.0, step=1.0)
                 if criterio_sel == "Preço Mais Baixo":
