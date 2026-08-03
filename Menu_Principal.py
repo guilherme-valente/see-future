@@ -52,58 +52,178 @@ pg_rentabilidade = st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade")
 # ==========================================================
 # 5. CSS GLOBAL (cartões do menu principal)
 # ==========================================================
-st.markdown(
-    """
-    <style>
-    .uau-card {
-        background: linear-gradient(145deg, #ffffff, #f4f6f9);
-        border: 1px solid #e1e4e8;
-        border-radius: 16px;
-        padding: 40px 25px;
-        text-align: center;
-        box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.04), -5px -5px 20px rgba(255, 255, 255, 1);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        height: 220px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        margin-bottom: 15px;
-    }
-    .uau-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0px 15px 30px rgba(0, 82, 204, 0.15);
-        border-color: #00AEAD;
-    }
-    .uau-title {
-        color: #091E42;
-        font-size: 28px;
-        font-weight: 800;
-        margin-bottom: 12px;
-        letter-spacing: -0.5px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .uau-desc {
-        color: #5E6C84;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# ==========================================================
+# 5. CSS GLOBAL FUTURE
+# ==========================================================
+
+st.markdown("""
+<style>
+:root{
+    --future-blue:#091E42;
+    --future-teal:#00AEAD;
+    --future-light:#F4F7FA;
+    --future-text:#42526E;
+    --future-border:#E6EAF0;
+}
+
+/* Página */
+.stApp{
+    background-color:white;
+    font-family:'Segoe UI',sans-serif;
+}
+
+/* Header Streamlit */
+header{
+    visibility:hidden;
+}
+
+/* Tipografia */
+h1,h2,h3,h4{
+    color:var(--future-blue);
+    font-family:'Segoe UI',sans-serif;
+}
+
+p,span,label,div{
+    font-family:'Segoe UI',sans-serif;
+}
+
+/* Inputs */
+.stTextInput input{
+    border-radius:12px;
+    border:1px solid var(--future-border);
+}
+.stTextInput input:focus{
+    border-color:var(--future-teal);
+}
+
+/* Botões */
+.stButton button,
+.stFormSubmitButton button{
+    width:100%;
+    background:var(--future-teal)!important;
+    color:white!important;
+    border:none!important;
+    border-radius:12px!important;
+    font-weight:700!important;
+    height:48px!important;
+    transition:0.3s ease!important;
+}
+
+.stButton button:hover,
+.stFormSubmitButton button:hover{
+    background:var(--future-blue)!important;
+    transform:translateY(-2px);
+}
+
+/* Cards */
+.uau-card{
+    background:white;
+    border:1px solid var(--future-border);
+    border-radius:22px;
+    padding:35px;
+    min-height:280px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    text-align:center;
+    transition:0.3s ease;
+    box-shadow:
+    0px 4px 12px rgba(9,30,66,0.05);
+    margin-bottom:12px;
+}
+
+.uau-card:hover{
+    transform:translateY(-6px);
+    border-color:var(--future-teal);
+    box-shadow:
+    0px 12px 24px rgba(0,174,173,0.15);
+}
+
+.uau-title{
+    color:var(--future-blue);
+    font-size:32px;
+    font-weight:800;
+    margin-bottom:15px;
+}
+
+.uau-desc{
+    color:#5E6C84;
+    line-height:1.7;
+    font-size:15px;
+}
+
+/* Containers */
+[data-testid="stVerticalBlockBorderWrapper"]{
+    border-radius:20px;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"]{
+    background:#091E42;
+}
+
+[data-testid="stSidebar"] *{
+    color:white;
+}
+
+/* Métricas */
+[data-testid="metric-container"]{
+    border:1px solid var(--future-border);
+    border-radius:16px;
+    background:white;
+    padding:15px;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"]{
+    border-radius:16px;
+    overflow:hidden;
+}
+
+/* Dividers */
+hr{
+    border-color:#E6EAF0;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 def ecra_login():
     """Formulário de autenticação (Face 1)."""
-    st.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="collapsedControl"] { display: none !important; }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <div style="
+    text-align:center;
+    padding-top:50px;
+    padding-bottom:30px;
+    ">
+    
+    <h1 style="
+    font-size:56px;
+    font-weight:900;
+    color:#091E42;
+    margin-bottom:10px;
+    ">
+    SEE FUTURE
+    </h1>
+    
+    <p style="
+    font-size:22px;
+    color:#00AEAD;
+    font-weight:600;
+    margin-bottom:5px;
+    ">
+    Engineering Intelligence Platform
+    </p>
+    
+    <p style="
+    color:#6B778C;
+    font-size:16px;
+    ">
+    Innovation • Leadership • Results
+    </p>
+    
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
     st.title("Acesso Reservado")
@@ -146,15 +266,31 @@ def ecra_login():
 
 def ecra_selecao_modulo():
     """Ecrã de seleção de módulo (Face 2) — Laboratório / Avaliação / Radar."""
-    st.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="collapsedControl"] { display: none !important; }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <div style="
+    text-align:center;
+    margin-bottom:40px;
+    ">
+    
+    <h1 style="
+    font-size:46px;
+    font-weight:900;
+    color:#091E42;
+    ">
+    SEE FUTURE
+    </h1>
+    
+    <p style="
+    font-size:20px;
+    color:#00AEAD;
+    font-weight:700;
+    margin-top:-10px;
+    ">
+    Engenharia Para Além da Técnica
+    </p>
+    
+    </div>
+    """, unsafe_allow_html=True)
 
     col_header1, col_header2 = st.columns([4, 1])
     with col_header1:
