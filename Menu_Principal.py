@@ -50,229 +50,47 @@ pg_posicionamento = st.Page("pages/7a_Posicionamento.py", title="Posicionamento"
 pg_rentabilidade = st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade")
 
 # ==========================================================
-# 5. IDENTIDADE VISUAL FUTURE — CSS GLOBAL
+# 5. CSS GLOBAL (cartões do menu principal)
 # ==========================================================
-# Paleta oficial (Manual de Identidade FUTURE):
-#   Pantone Black   -> CMYK 0,0,0,100  -> RGB 35,31,32   -> #232021
-#   Pantone 7711C   -> CMYK 92,0,40,0  -> RGB 0,174,173  -> #00AEAD
-# Tons derivados para gradientes/estados (variações da cor principal, tal
-# como o manual permite "diferentes percentagens de cada uma das duas cores").
-
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap');
-
-    :root {
-        --future-black: #232021;
-        --future-teal: #00AEAD;
-        --future-teal-dark: #017D82;
-        --future-teal-darker: #0B4F5C;
-        --future-teal-light: #4FD1CE;
-        --future-grey: #5E6C84;
-        --future-bg: #F5F8F8;
-    }
-
-    html, body, [class*="css"]  {
-        font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
-    }
-
-    /* Fundo geral da app, ligeiramente esverdeado como o papel dos relatórios FUTURE */
-    .stApp {
-        background: var(--future-bg);
-    }
-
-    /* Esconder cabeçalho nativo do Streamlit para dar lugar à nossa barra de marca */
-    header[data-testid="stHeader"] {
-        background: transparent;
-    }
-
-    /* ---------------------------------------------------------------
-       BARRA DE MARCA — imita a faixa superior colorida usada nos
-       slides e relatórios FUTURE (número/etiqueta de secção + logo)
-       --------------------------------------------------------------- */
-    .future-topbar {
-        background: linear-gradient(100deg, var(--future-teal-darker) 0%, var(--future-teal) 55%, var(--future-teal-light) 100%);
-        border-radius: 0 0 22px 22px;
-        padding: 22px 40px;
-        margin: -1rem -1rem 2rem -1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 6px 24px rgba(0, 78, 78, 0.18);
-        position: relative;
-        overflow: hidden;
-    }
-    /* diagonais decorativas, como as usadas nos fundos dos slides FUTURE */
-    .future-topbar::after {
-        content: "";
-        position: absolute;
-        top: -40%;
-        right: -5%;
-        width: 260px;
-        height: 260px;
-        background: rgba(255,255,255,0.08);
-        border-radius: 50%;
-        transform: rotate(20deg);
-    }
-    .future-topbar::before {
-        content: "";
-        position: absolute;
-        bottom: -60%;
-        right: 18%;
-        width: 160px;
-        height: 160px;
-        background: rgba(255,255,255,0.06);
-        border-radius: 50%;
-    }
-    .future-wordmark {
-        font-family: 'Source Sans 3', sans-serif;
-        font-weight: 900;
-        font-size: 26px;
-        letter-spacing: 4px;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 1;
-    }
-    /* pequeno traço acima do texto, referência ao grafismo do "F" da marca */
-    .future-wordmark .grafismo {
-        width: 22px;
-        height: 6px;
-        background: #ffffff;
-        border-radius: 4px 4px 0 0;
-        display: inline-block;
-        margin-right: 2px;
-    }
-    .future-tagline {
-        font-size: 11px;
-        letter-spacing: 2px;
-        color: rgba(255,255,255,0.85);
-        text-transform: uppercase;
-        font-weight: 400;
-        margin-top: 2px;
-    }
-    .future-session-info {
-        color: #ffffff;
-        font-size: 14px;
-        text-align: right;
-        z-index: 1;
-    }
-    .future-session-info b {
-        font-weight: 700;
-    }
-
-    /* ---------------------------------------------------------------
-       CARTÕES DE MÓDULO — cantos bem arredondados (como as "cápsulas"
-       usadas em todos os separadores de capítulo do manual FUTURE)
-       --------------------------------------------------------------- */
     .uau-card {
-        background: #ffffff;
-        border: 1px solid #E3EDED;
-        border-radius: 28px;
-        padding: 40px 28px;
-        text-align: left;
-        box-shadow: 0 10px 30px rgba(0, 78, 78, 0.06);
-        transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        height: 230px;
+        background: linear-gradient(145deg, #ffffff, #f4f6f9);
+        border: 1px solid #e1e4e8;
+        border-radius: 16px;
+        padding: 40px 25px;
+        text-align: center;
+        box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.04), -5px -5px 20px rgba(255, 255, 255, 1);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        height: 220px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         margin-bottom: 15px;
-        position: relative;
-        overflow: hidden;
-    }
-    .uau-card::before {
-        content: "";
-        position: absolute;
-        top: -30px;
-        left: -30px;
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--future-teal-light), var(--future-teal));
-        opacity: 0.12;
     }
     .uau-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 18px 34px rgba(0, 174, 173, 0.18);
-        border-color: var(--future-teal);
-    }
-    .uau-eyebrow {
-        color: var(--future-teal-dark);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-        z-index: 1;
+        transform: translateY(-8px);
+        box-shadow: 0px 15px 30px rgba(0, 82, 204, 0.15);
+        border-color: #00AEAD;
     }
     .uau-title {
-        color: var(--future-black);
-        font-size: 26px;
+        color: #091E42;
+        font-size: 28px;
         font-weight: 800;
         margin-bottom: 12px;
-        letter-spacing: -0.3px;
-        z-index: 1;
+        letter-spacing: -0.5px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .uau-desc {
-        color: var(--future-grey);
-        font-size: 14.5px;
+        color: #5E6C84;
+        font-size: 15px;
         line-height: 1.6;
-        z-index: 1;
-    }
-
-    /* Botões primários com a cor de marca */
-    div.stButton > button[kind="primary"] {
-        background: linear-gradient(100deg, var(--future-teal-dark), var(--future-teal));
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        letter-spacing: 0.3px;
-        box-shadow: 0 4px 14px rgba(0, 174, 173, 0.25);
-    }
-    div.stButton > button[kind="primary"]:hover {
-        background: linear-gradient(100deg, var(--future-teal-darker), var(--future-teal-dark));
-        box-shadow: 0 6px 18px rgba(0, 174, 173, 0.35);
-    }
-    div.stButton > button:not([kind="primary"]) {
-        border-radius: 12px;
-        border: 1px solid #D7E3E3;
-    }
-
-    /* Divider mais fino, na cor de marca */
-    hr {
-        border-top: 1px solid #D7E3E3 !important;
-    }
-
-    /* Cartão de login */
-    div[data-testid="stForm"] {
-        border-radius: 22px !important;
-        border: 1px solid #E3EDED !important;
-        padding: 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
-
-def future_topbar(session_line: str | None = None):
-    """Barra superior com a identidade FUTURE (gradiente petróleo + wordmark)."""
-    session_html = f'<div class="future-session-info">{session_line}</div>' if session_line else '<div></div>'
-    st.markdown(
-        f"""
-        <div class="future-topbar">
-            <div>
-                <div class="future-wordmark"><span class="grafismo"></span>FUTURE</div>
-                <div class="future-tagline">Engenharia para além da técnica</div>
-            </div>
-            {session_html}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 
 def ecra_login():
@@ -286,8 +104,6 @@ def ecra_login():
         """,
         unsafe_allow_html=True
     )
-
-    future_topbar()
 
     st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
     st.title("Acesso Reservado")
@@ -340,13 +156,12 @@ def ecra_selecao_modulo():
         unsafe_allow_html=True
     )
 
-    sessao = (
-        f"Sessão iniciada como <b>{st.session_state['nome_utilizador']}</b>"
-        f" &nbsp;·&nbsp; {st.session_state['papel_utilizador'].upper()}"
-    )
-    future_topbar(sessao)
-
-    col_header1, col_header2 = st.columns([5, 1])
+    col_header1, col_header2 = st.columns([4, 1])
+    with col_header1:
+        st.markdown(
+            f"Sessão iniciada como: **{st.session_state['nome_utilizador']}** "
+            f"({st.session_state['papel_utilizador'].upper()})"
+        )
     with col_header2:
         if st.button("Terminar Sessão", use_container_width=True):
             st.session_state['autenticado'] = False
@@ -354,6 +169,8 @@ def ecra_selecao_modulo():
             st.session_state['papel_utilizador'] = ""
             st.session_state['modulo_ativo'] = 'menu'
             st.rerun()
+
+    st.divider()
 
     st.title("Plataforma See Future")
     st.markdown("Selecione o ambiente operacional ou estratégico pretendido.")
@@ -365,7 +182,6 @@ def ecra_selecao_modulo():
         st.markdown(
             '''
             <div class="uau-card">
-                <div class="uau-eyebrow">01 · Operacional</div>
                 <div class="uau-title">Laboratório</div>
                 <div class="uau-desc">Espaço analítico dedicado à gestão de concursos públicos, avaliação da concorrência e comportamento de clientes.</div>
             </div>
@@ -380,7 +196,6 @@ def ecra_selecao_modulo():
         st.markdown(
             '''
             <div class="uau-card">
-                <div class="uau-eyebrow">02 · Estratégico</div>
                 <div class="uau-title">Avaliação</div>
                 <div class="uau-desc">Módulo de inteligência preditiva. Simule cenários concorrenciais e avalie a rentabilidade antes de submeter propostas.</div>
             </div>
@@ -395,7 +210,6 @@ def ecra_selecao_modulo():
         st.markdown(
             '''
             <div class="uau-card">
-                <div class="uau-eyebrow">03 · Em breve</div>
                 <div class="uau-title">Radar</div>
                 <div class="uau-desc">Módulo estratégico em desenvolvimento. Destinado à prospeção avançada e mapeamento preventivo de mercado.</div>
             </div>
