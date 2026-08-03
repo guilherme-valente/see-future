@@ -83,6 +83,18 @@ def safe_float(valor, default=0.0):
     except (ValueError, TypeError):
         return default
 
+def obter_data_filtro(row):
+     estado = str(row.get('estado', '')).strip()
+     if estado == "Adjudicado":
+        return row.get('data_ajudicacao')
+     elif estado == "Aberto":
+        return row.get('data_concurso')
+     elif estado in ["Fechado","Em Avaliação"]:
+        return row.get('data_submissao')
+
+     return row.get('data_concurso')
+     df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
+
 def safe_int_or_none(valor):
     try:
         if pd.isna(valor) or valor is None or str(valor).strip() == "":
@@ -217,18 +229,6 @@ try:
             df_concursos['data_adjudicacao'] = pd.to_datatime(df_concursos['data_adjudicacao'], errors='coerce').dt.date
         else:
             df_concursos['data_adjudicacao'] = pd.NaT
-
-        def obter_data_filtro(row):
-            estado = str(row.get('estado', '')).strip()
-            if estado == "Adjudicado":
-                return row.get('data_ajudicacao')
-            elif estado == "Aberto":
-                return row.get('data_concurso')
-            elif estado in ["Fechado","Em Avaliação"]:
-                return row.get('data_submissao')
-
-            return row.get('data_concurso')
-        df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
 
         # País: normalizar para string, com fallback para concursos antigos sem este campo
         if 'pais' in df_concursos.columns:
