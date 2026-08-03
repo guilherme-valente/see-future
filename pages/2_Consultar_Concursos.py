@@ -488,6 +488,8 @@ try:
                             st.markdown(f"**Data de Submissão:** {data_submissao_mostrar}")
                         with colC:
                             st.markdown(f"**Estado:** {dados_cc['estado']}")
+                            data_adjudicacao_mostrar = dados_cc['data_adjudicacao'] if pd.notna(dados_cc.get('data_adjudicacao')) else "Não definida"
+                            st.markdown(f"**Data de Adjudicação:** {data_adjudicacao_mostrar}")
                             st.markdown("**Critério de Adjudicação:**")
                             st.info(dados_cc['criterio_adjudicacao'])
 
