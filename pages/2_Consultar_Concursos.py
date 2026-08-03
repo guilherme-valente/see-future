@@ -213,6 +213,23 @@ try:
         else:
             df_concursos['data_submissao'] = pd.NaT
 
+        if 'data_adjudicacao' in df_concursos.columns:
+            df_concursos['data_adjudicacao'] = pd.to_datatime(df_concursos['data_adjudicacao'], errors='coerce').dt.date
+        else:
+            df_concursos['data_adjudicacao'] = pd.NaT
+
+        def obter_data_filtro(row):
+            estado = str(row.get('estado', '')).strip()
+            if estado == "Adjudicado":
+                return row.get('data_ajudicacao')
+            elif estado == "Aberto":
+                return row.get('data_concurso')
+            elif estado in ["Fechado","Em Avaliação"]:
+                return row.get('data_submissao')
+
+            return row.get('data_concurso')
+        df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
+
         # País: normalizar para string, com fallback para concursos antigos sem este campo
         if 'pais' in df_concursos.columns:
             df_concursos['Pais'] = df_concursos['pais'].apply(lambda x: str(x) if pd.notna(x) and str(x).strip() else 'Não definido')
@@ -229,8 +246,13 @@ try:
         else:
             df_concursos['Nº Concorrentes'] = 0
 
-        data_minima = df_concursos['data_concurso'].min()
-        data_maxima = df_concursos['data_concurso'].max()
+        datas_validas = df_concursos['data_filtro'].dropna()
+        if not datas_validas.empty:
+            data_minima = datas_validas.min()
+            data_maxima = datas_validas.max()
+        else:
+            data_minima = pd.Timestamp.today().date()
+            data_maxima = pd.Timestamp.today().date()
 
         with st.expander("Abrir Filtros de Pesquisa", expanded=True):
             c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -268,7 +290,11 @@ try:
 
         if isinstance(filtro_datas, (tuple, list)) and len(filtro_datas) == 2:
             data_inicio, data_fim = filtro_datas
-            df_filtrado = df_filtrado[(df_filtrado['data_concurso'] >= data_inicio) & (df_filtrado['data_concurso'] <= data_fim)]
+            df_filtrado = df_filtrado[
+            (df_filtrado['data_filtro'].notna()) &
+            (df_filtrado['data_filtro'] >= data_inicio) &
+            (df_filtrado['data_filtro'] <= data_fim)
+            ]]
 
         st.markdown(f"**Resultados Encontrados:** {len(df_filtrado)} concursos")
 
