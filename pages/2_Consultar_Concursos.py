@@ -239,7 +239,7 @@ try:
         df_concursos['Cliente'] = df_concursos['clientes'].apply(lambda x: x.get('nome_cliente', '') if isinstance(x, dict) else '')
         df_concursos['Distrito'] = df_concursos['distrito'].apply(lambda x: str(x) if pd.notna(x) else '')
 
-        if not df_propostas.empty and 'proposta_id' in df_propostas.columns:
+        if not df_propostas.empty:
             contagem_concorrentes = df_propostas.groupby('concurso_id')['nome_empresa'].nunique().reset_index(name='Nº Concorrentes')
             df_concursos = pd.merge(df_concursos, contagem_concorrentes, left_on='id', right_on='concurso_id', how='left')
             df_concursos['Nº Concorrentes'] = df_concursos['Nº Concorrentes'].fillna(0).astype(int)
