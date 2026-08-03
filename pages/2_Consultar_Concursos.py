@@ -91,9 +91,7 @@ def obter_data_filtro(row):
         return row.get('data_concurso')
      elif estado in ["Fechado","Em Avaliação"]:
         return row.get('data_submissao')
-
      return row.get('data_concurso')
-df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
 
 def safe_int_or_none(valor):
     try:
@@ -229,6 +227,8 @@ try:
             df_concursos['data_adjudicacao'] = pd.to_datetime(df_concursos['data_adjudicacao'], errors='coerce').dt.date
         else:
             df_concursos['data_adjudicacao'] = pd.NaT
+
+        df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
 
         # País: normalizar para string, com fallback para concursos antigos sem este campo
         if 'pais' in df_concursos.columns:
