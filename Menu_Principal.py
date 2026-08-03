@@ -426,8 +426,3 @@ elif st.session_state['modulo_ativo'] == 'avaliacao':
 
 else:
     ecra_selecao_modulo()
-    nav = st.navigation(paginas_aval)
-    nav.run()
-
-else:
-    ecra_selecao_modulo()
