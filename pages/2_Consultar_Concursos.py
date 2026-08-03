@@ -86,14 +86,14 @@ def safe_float(valor, default=0.0):
 def obter_data_filtro(row):
      estado = str(row.get('estado', '')).strip()
      if estado == "Adjudicado":
-        return row.get('data_ajudicacao')
+        return row.get('data_adjudicacao')
      elif estado == "Aberto":
         return row.get('data_concurso')
      elif estado in ["Fechado","Em Avaliação"]:
         return row.get('data_submissao')
 
      return row.get('data_concurso')
-     df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
+df_concursos['data_filtro'] = df_concursos.apply(obter_data_filtro, axis=1)
 
 def safe_int_or_none(valor):
     try:
@@ -226,7 +226,7 @@ try:
             df_concursos['data_submissao'] = pd.NaT
 
         if 'data_adjudicacao' in df_concursos.columns:
-            df_concursos['data_adjudicacao'] = pd.to_datatime(df_concursos['data_adjudicacao'], errors='coerce').dt.date
+            df_concursos['data_adjudicacao'] = pd.to_datetime(df_concursos['data_adjudicacao'], errors='coerce').dt.date
         else:
             df_concursos['data_adjudicacao'] = pd.NaT
 
@@ -294,7 +294,7 @@ try:
             (df_filtrado['data_filtro'].notna()) &
             (df_filtrado['data_filtro'] >= data_inicio) &
             (df_filtrado['data_filtro'] <= data_fim)
-            ]]
+            ]
 
         st.markdown(f"**Resultados Encontrados:** {len(df_filtrado)} concursos")
 
