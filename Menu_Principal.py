@@ -3,11 +3,12 @@ import bcrypt
 from pathlib import Path
 from supabase import create_client, Client
 
+FAVICON_PATH = Path(__file__).parent / "assets" / "future_icon.png"
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA PÁGINA PRINCIPAL
 # ==========================================================
-st.set_page_config(page_title="Portal | SEE FUTURE", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Portal | SEE FUTURE",page_icon=str(FAVICON_PATH), layout="wide", initial_sidebar_state="collapsed")
 
 # Cores oficiais da marca FUTURE
 FUTURE_TEAL = "#00AEAD"       # Pantone 7711C
