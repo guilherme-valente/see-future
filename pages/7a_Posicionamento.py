@@ -58,6 +58,7 @@ st.markdown(
     .fs-badge-equilibrado { background: #fef3c7; color: #92400e; }
     .fs-badge-fragil { background: #fee2e2; color: #991b1b; }
     .fs-badge-critico { background: #fecaca; color: #7f1d1d; }
+    .fs-badge-indisponivel { background: #e2e8f0; color: #334155; }
 
     .n-badge {
         display: inline-block; background-color: #eef2ff; color: #4338ca;
@@ -90,12 +91,15 @@ st.markdown(
 LIMIAR_AMOSTRA_MINIMA = 10
 PESO_ESCALAO, PESO_MERCADO, PESO_ZONA, PESO_CLIENTE, PESO_PAIS = 0.25, 0.25, 0.1, 0.3, 0.1
 
+NOTA_TECNICA_FUTURE_OMISSAO = 85.0
+NOTA_TECNICA_CONC_OMISSAO = 82.0
+
 
 # =============================================================================
 # UTILITÁRIOS DE FORMATAÇÃO
 # =============================================================================
 def formatar_moeda(valor):
-    if pd.isna(valor):
+    if valor is None or pd.isna(valor):
         return "0,00 €"
     return f"{valor:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -123,6 +127,8 @@ def badge_n(n):
 
 def classificar_indice(indice):
     """Devolve (rótulo, classe_css) para o Índice Estratégico (0-100)."""
+    if indice is None or pd.isna(indice):
+        return "Índice Indisponível", "fs-badge-indisponivel"
     if indice >= 75:
         return "Posicionamento Excelente", "fs-badge-excelente"
     elif indice >= 60:
@@ -171,7 +177,12 @@ def processar_concursos(df_concursos):
     )
     df['Regiao'] = df['distrito'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
     df['Pais'] = df['pais'].apply(lambda x: str(x) if pd.notna(x) else 'Não Definido')
-    df['escalao'] = df['preco_base'].apply(definir_escalao)
+
+    # Fragilidade corrigida: preco_base nulo, negativo ou não numérico deixava de dar
+    # para classificar o escalão e, mais à frente, gerava divisões por zero/NaN no
+    # cálculo do desconto. Forçamos numérico e tratamos valores inválidos como NaN.
+    df['preco_base'] = pd.to_numeric(df['preco_base'], errors='coerce')
+    df['escalao'] = df['preco_base'].apply(lambda v: definir_escalao(v) if pd.notna(v) and v > 0 else 'Não Definido')
 
     col_data_candidatos = ['data_concurso', 'data_publicacao', 'data_abertura', 'created_at', 'data']
     col_data_concurso = next((c for c in col_data_candidatos if c in df.columns), None)
@@ -217,6 +228,11 @@ def processar_propostas(df_propostas_raw):
     df['em_consorcio'] = df.get('em_consorcio', False)
     df['em_consorcio'] = df['em_consorcio'].fillna(False).astype(bool)
 
+    # Fragilidade corrigida: valor_proposto não numérico (texto, None persistente,
+    # etc.) propagava-se sem aviso até ao cálculo do desconto.
+    if 'valor_proposto' in df.columns:
+        df['valor_proposto'] = pd.to_numeric(df['valor_proposto'], errors='coerce')
+
     df['nome_lider'] = df['proposta_empresas'].apply(_extrair_lider)
     df['nomes_todas_empresas'] = df['proposta_empresas'].apply(_extrair_nomes_todas)
     df['n_empresas_na_proposta'] = df['nomes_todas_empresas'].apply(len)
@@ -244,15 +260,39 @@ def processar_propostas(df_propostas_raw):
     df_empresa_exploded = pd.DataFrame(linhas)
     return df, df_empresa_exploded
 
+
 def _soma_notas(notas_json):
-    if isinstance(notas_json, dict):
-        criterios = ['CVs', 'Metodologia', 'Afetacao']
-        valores = [notas_json[c] for c in criterios if notas_json.get(c, 0) > 0]
-        if not valores:
-            return None
-        soma = sum(valores) / len(valores)
-        return soma if soma > 0 else None
-    return None
+    """
+    Calcula a média dos critérios técnicos preenchidos.
+
+    Fragilidades corrigidas nesta função:
+    - Se um critério existir no JSON com valor None (JSON null) em vez de estar
+      ausente, `notas_json.get(c, 0)` devolvia None (o default só se aplica quando
+      a chave não existe) e `None > 0` lançava TypeError, derrubando a app inteira
+      através do except genérico em main(). Agora tratamos None/valores não
+      numéricos como ausentes, em vez de deixar a comparação rebentar.
+    - Os nomes dos critérios estavam hardcoded sem qualquer tolerância a
+      diferenças de maiúsculas/minúsculas na origem dos dados.
+    """
+    if not isinstance(notas_json, dict):
+        return None
+
+    criterios = ['CVs', 'Metodologia', 'Afetacao']
+    valores = []
+    for c in criterios:
+        v = notas_json.get(c)
+        if v is None:
+            continue
+        v_num = pd.to_numeric(v, errors='coerce')
+        if pd.notna(v_num) and v_num > 0:
+            valores.append(float(v_num))
+
+    if not valores:
+        return None
+
+    soma = sum(valores) / len(valores)
+    return soma if soma > 0 else None
+
 
 # =============================================================================
 # CONTEXTO ESTATÍSTICO (histórico filtrado por cliente / unidade de negócio / zona)
@@ -269,11 +309,11 @@ class ContextoHistorico:
     desconto_mediano: float = 0.08
     desconto_desvio: float = 0.0
 
-    nota_tecnica_future: float = 85.0
+    nota_tecnica_future: float = NOTA_TECNICA_FUTURE_OMISSAO
     nota_tecnica_future_real: bool = False
     n_propostas_future_com_nota: int = 0
 
-    nota_tecnica_conc: float = 82.0
+    nota_tecnica_conc: float = NOTA_TECNICA_CONC_OMISSAO
     nota_tecnica_conc_real: bool = False
     n_propostas_conc_com_nota: int = 0
 
@@ -325,7 +365,7 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
     ctx.alpha_fiabilidade = min(
         1.0, 0.05 + (ctx.n_concursos_total * 0.10) + (min(ctx.n_propostas_validas, 20) * 0.01)
     )
-   
+
     # Nível empresa (explodido)
     df_emp_ctx = df_empresa_exploded[df_empresa_exploded['concurso_id'].isin(ids_concursos)].copy()
     df_emp_validas = df_emp_ctx[df_emp_ctx['desclassificado'] == False].copy()
@@ -349,49 +389,81 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
         filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'nome_cliente', '_data_norm']],
         left_on='concurso_id', right_on='id'
     )
+
+    # Fragilidade corrigida: preco_base ou valor_proposto nulos/zero/negativos
+    # geravam NaN ou divisão por zero silenciosa no cálculo do desconto, que depois
+    # se espalhava por médias, medianas e desvios-padrão. Filtramos primeiro as
+    # linhas com dados válidos para o cálculo.
+    df_cruzado = df_cruzado[
+        df_cruzado['preco_base'].notna() & (df_cruzado['preco_base'] > 0) &
+        df_cruzado['valor_proposto'].notna()
+    ].copy()
     df_cruzado['desconto'] = (df_cruzado['preco_base'] - df_cruzado['valor_proposto']) / df_cruzado['preco_base']
+    df_cruzado = df_cruzado[df_cruzado['desconto'].notna()]
 
-    # Remoção de outliers (IQR)
-    q1, q3 = df_cruzado['desconto'].quantile([0.25, 0.75])
-    iqr = q3 - q1
-    df_limpo = df_cruzado[(df_cruzado['desconto'] >= q1 - 1.5 * iqr) & (df_cruzado['desconto'] <= q3 + 1.5 * iqr)]
+    if not df_cruzado.empty:
+        # Remoção de outliers (IQR). Com amostras muito pequenas o IQR pode ser 0
+        # e filtrar tudo exceto a mediana — nesse caso preferimos não filtrar
+        # outliers a ficar sem qualquer dado.
+        q1, q3 = df_cruzado['desconto'].quantile([0.25, 0.75])
+        iqr = q3 - q1
+        if pd.notna(iqr) and iqr > 0:
+            df_limpo = df_cruzado[(df_cruzado['desconto'] >= q1 - 1.5 * iqr) & (df_cruzado['desconto'] <= q3 + 1.5 * iqr)]
+        else:
+            df_limpo = df_cruzado
 
-    if not df_limpo.empty:
-        if pd.notna(df_limpo['desconto'].mean()):
-            ctx.desconto_medio = float(df_limpo['desconto'].mean())
-        if pd.notna(df_limpo['desconto'].median()):
-            ctx.desconto_mediano = float(df_limpo['desconto'].median())
-        if pd.notna(df_limpo['desconto'].std()):
-            ctx.desconto_desvio = float(df_limpo['desconto'].std())
+        if not df_limpo.empty:
+            if pd.notna(df_limpo['desconto'].mean()):
+                ctx.desconto_medio = float(df_limpo['desconto'].mean())
+            if pd.notna(df_limpo['desconto'].median()):
+                ctx.desconto_mediano = float(df_limpo['desconto'].median())
+            if pd.notna(df_limpo['desconto'].std()):
+                ctx.desconto_desvio = float(df_limpo['desconto'].std())
 
-    # Evolução temporal
-    if df_cruzado['_data_norm'].notna().sum() >= 2:
-        df_temp = df_cruzado.dropna(subset=['_data_norm']).sort_values('_data_norm')
-        df_temp['ano_mes'] = df_temp['_data_norm'].dt.to_period('M').astype(str)
-        ctx.evolucao_desconto = df_temp.groupby('ano_mes')['desconto'].mean().reset_index()
-        ctx.evolucao_desconto.columns = ['Período', 'Desconto Médio']
+        # Evolução temporal
+        if df_cruzado['_data_norm'].notna().sum() >= 2:
+            df_temp = df_cruzado.dropna(subset=['_data_norm']).sort_values('_data_norm')
+            df_temp['ano_mes'] = df_temp['_data_norm'].dt.to_period('M').astype(str)
+            ctx.evolucao_desconto = df_temp.groupby('ano_mes')['desconto'].mean().reset_index()
+            ctx.evolucao_desconto.columns = ['Período', 'Desconto Médio']
 
-    # Nota técnica FUTURE
-    df_future = df_cruzado[df_cruzado['nome_lider'].str.upper() == 'FUTURE']
-    notas_future = [n for n in df_future.get('notas_criterios', pd.Series(dtype=object)).apply(_soma_notas) if n]
-    ctx.n_propostas_future_com_nota = len(notas_future)
-    if notas_future:
-        ctx.nota_tecnica_future = float(np.mean(notas_future))
-        ctx.nota_tecnica_future_real = True
+        # Nota técnica FUTURE
+        # Fragilidade corrigida: np.mean(notas_future) podia devolver NaN (ex.
+        # inconsistências nos dados), e esse NaN era atribuído diretamente a
+        # ctx.nota_tecnica_future COM nota_tecnica_future_real = True, fazendo a
+        # interface apresentar "N/A Pts" como se fosse um valor real, e propagando
+        # NaN para todo o Índice Estratégico. Agora só aceitamos o valor calculado
+        # se for um número válido; caso contrário mantém-se o valor de omissão.
+        df_future = df_cruzado[df_cruzado['nome_lider'].str.upper() == 'FUTURE']
+        notas_future = [
+            n for n in df_future.get('notas_criterios', pd.Series(dtype=object)).apply(_soma_notas)
+            if n is not None
+        ]
+        ctx.n_propostas_future_com_nota = len(notas_future)
+        if notas_future:
+            media_future = np.mean(notas_future)
+            if pd.notna(media_future):
+                ctx.nota_tecnica_future = float(media_future)
+                ctx.nota_tecnica_future_real = True
 
-    if not df_future.empty and 'vencedor' in df_future.columns:
-        ctx.n_concursos_future_participou = df_future['concurso_id'].nunique()
-        ctx.n_concursos_future_ganhou = int(df_future[df_future['vencedor'] == True]['concurso_id'].nunique())
-        if ctx.n_concursos_future_participou > 0:
-            ctx.taxa_sucesso_future = ctx.n_concursos_future_ganhou / ctx.n_concursos_future_participou
+        if not df_future.empty and 'vencedor' in df_future.columns:
+            ctx.n_concursos_future_participou = df_future['concurso_id'].nunique()
+            ctx.n_concursos_future_ganhou = int(df_future[df_future['vencedor'] == True]['concurso_id'].nunique())
+            if ctx.n_concursos_future_participou > 0:
+                ctx.taxa_sucesso_future = ctx.n_concursos_future_ganhou / ctx.n_concursos_future_participou
 
-    # Nota técnica da concorrência
-    df_conc = df_cruzado[df_cruzado['nome_lider'].str.upper() != 'FUTURE']
-    notas_conc = [n for n in df_conc.get('notas_criterios', pd.Series(dtype=object)).apply(_soma_notas) if n]
-    ctx.n_propostas_conc_com_nota = len(notas_conc)
-    if notas_conc:
-        ctx.nota_tecnica_conc = float(np.mean(notas_conc))
-        ctx.nota_tecnica_conc_real = True
+        # Nota técnica da concorrência (mesma correção aplicada)
+        df_conc = df_cruzado[df_cruzado['nome_lider'].str.upper() != 'FUTURE']
+        notas_conc = [
+            n for n in df_conc.get('notas_criterios', pd.Series(dtype=object)).apply(_soma_notas)
+            if n is not None
+        ]
+        ctx.n_propostas_conc_com_nota = len(notas_conc)
+        if notas_conc:
+            media_conc = np.mean(notas_conc)
+            if pd.notna(media_conc):
+                ctx.nota_tecnica_conc = float(media_conc)
+                ctx.nota_tecnica_conc_real = True
 
     # Tabela de concorrentes (nível empresa)
     df_emp_cruzado = pd.merge(
@@ -399,6 +471,10 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
         filtro_historico[['id', 'preco_base', 'escalao', 'mercado', 'distrito', 'pais', 'nome_cliente']],
         left_on='concurso_id', right_on='id'
     )
+    df_emp_cruzado = df_emp_cruzado[
+        df_emp_cruzado['preco_base'].notna() & (df_emp_cruzado['preco_base'] > 0) &
+        df_emp_cruzado['valor_proposto'].notna()
+    ].copy()
     df_emp_cruzado['desconto'] = (df_emp_cruzado['preco_base'] - df_emp_cruzado['valor_proposto']) / df_emp_cruzado['preco_base']
     adversarias = df_emp_cruzado[df_emp_cruzado['nome_empresa'].str.upper() != 'FUTURE']
 
@@ -415,14 +491,17 @@ def calcular_contexto(df_concursos, df_propostas, df_empresa_exploded, cliente_s
             match_pais = df_emp['pais'].eq(pais_sel).sum()
 
             score_presenca = (
-                match_cliente * PESO_CLIENTE + 
+                match_cliente * PESO_CLIENTE +
                 match_escalao * PESO_ESCALAO +
-                match_mercado * PESO_MERCADO + 
-                match_zona * PESO_ZONA +  
+                match_mercado * PESO_MERCADO +
+                match_zona * PESO_ZONA +
                 match_pais * PESO_PAIS
             )
             prob_participacao = min(95.0, 15.0 + (score_presenca / max(1, total_concursos_ctx)) * 100)
-            desc_medio_emp = df_emp['desconto'].mean() if not df_emp['desconto'].empty else ctx.desconto_medio
+            desconto_emp = df_emp['desconto'].dropna()
+            desc_medio_emp = desconto_emp.mean() if not desconto_emp.empty else ctx.desconto_medio
+            if pd.isna(desc_medio_emp):
+                desc_medio_emp = ctx.desconto_medio
             valor_numerario = preco_base_input * desc_medio_emp
 
             linhas_tabela.append({
@@ -459,11 +538,33 @@ def calcular_indice_estrategico(preco_future, preco_medio_conc, nota_tecnica_fut
     Calcula o Índice Estratégico (0-100) para um dado preço, decompondo-o nos
     fatores de preço, técnico e fiabilidade da amostra. Devolve um dicionário
     com o índice final e a contribuição de cada fator (para explicação).
+
+    Fragilidade corrigida: a função não validava nenhum dos inputs. Um único
+    NaN em preco_future, preco_medio_conc, nota_tecnica_future ou
+    nota_tecnica_conc contaminava toda a cadeia de cálculo (pontos -> score
+    diferencial -> probabilidade -> índice), e como NaN não gera exceção em
+    Python, o índice acabava por aparecer como "nan" na interface sem qualquer
+    aviso. Agora validamos os inputs antes de calcular e devolvemos um
+    resultado explicitamente marcado como indisponível quando os dados não
+    permitem um cálculo válido.
     """
+    valores_entrada = [preco_future, preco_medio_conc, nota_tecnica_future, nota_tecnica_conc,
+                       w_preco, w_tecnico, alpha_fiabilidade, valor_limiar_critico]
+    if any(v is None or (isinstance(v, float) and pd.isna(v)) for v in valores_entrada):
+        return {
+            "indice": None,
+            "excluido": False,
+            "indisponivel": True,
+            "pontos_preco_fut": None, "pontos_preco_conc": None,
+            "pontos_tec_fut": None, "pontos_tec_conc": None,
+            "score_diferencial": None,
+        }
+
     if preco_future < valor_limiar_critico:
         return {
             "indice": 0.0,
             "excluido": True,
+            "indisponivel": False,
             "pontos_preco_fut": 0.0, "pontos_preco_conc": w_preco,
             "pontos_tec_fut": 0.0, "pontos_tec_conc": w_tecnico,
             "score_diferencial": None,
@@ -481,6 +582,7 @@ def calcular_indice_estrategico(preco_future, preco_medio_conc, nota_tecnica_fut
     return {
         "indice": float(indice_ajustado * 100),
         "excluido": False,
+        "indisponivel": False,
         "pontos_preco_fut": pontos_preco_fut, "pontos_preco_conc": pontos_preco_conc,
         "pontos_tec_fut": pontos_tec_fut, "pontos_tec_conc": pontos_tec_conc,
         "score_diferencial": score_diferencial,
@@ -498,7 +600,13 @@ def gerar_curva_sensibilidade(preco_min, preco_max, preco_medio_conc, nota_tecni
             w_preco, w_tecnico, alpha_fiabilidade, valor_limiar_critico
         )
         indice = r["indice"]
-        valor_esperado = p * (indice / 100)
+        # Fragilidade corrigida: se o índice não estiver disponível (None/NaN),
+        # não tentamos multiplicar por preço — isso geraria NaN silencioso na
+        # curva e no gráfico. Marcamos o ponto como indisponível.
+        if indice is None or pd.isna(indice):
+            valor_esperado = None
+        else:
+            valor_esperado = p * (indice / 100)
         linhas.append({"Preço": p, "Índice Estratégico": indice, "Valor Esperado": valor_esperado})
     return pd.DataFrame(linhas)
 
@@ -510,7 +618,15 @@ def calcular_preco_otimo(df_curva):
     """
     if df_curva.empty:
         return None
-    linha_otima = df_curva.loc[df_curva["Valor Esperado"].idxmax()]
+
+    # Fragilidade corrigida: idxmax() sobre uma coluna cheia de NaN lança erro,
+    # e mesmo que só existam alguns NaN, o resultado escolhido podia ser NaN se
+    # essas linhas não tivessem sido descartadas primeiro.
+    df_valido = df_curva.dropna(subset=["Valor Esperado"])
+    if df_valido.empty:
+        return None
+
+    linha_otima = df_valido.loc[df_valido["Valor Esperado"].idxmax()]
     return {
         "preco": float(linha_otima["Preço"]),
         "indice": float(linha_otima["Índice Estratégico"]),
@@ -528,6 +644,11 @@ def gerar_insights(ctx: ContextoHistorico, preco_future, preco_otimo_info, valor
     if ctx.n_concursos_total < LIMIAR_AMOSTRA_MINIMA:
         insights.append(("alerta", f"A amostra histórica é pequena ({ctx.n_concursos_total} concurso(s)). "
                                     "Trata os indicadores como indicativos, não conclusivos."))
+
+    if indice_atual is None or pd.isna(indice_atual):
+        insights.append(("alerta", "Não foi possível calcular o Índice Estratégico com os dados disponíveis "
+                                    "para este cenário. Verifica se existem valores em falta no histórico "
+                                    "(preço base, valor proposto ou notas técnicas)."))
 
     if preco_future < valor_limiar_critico:
         insights.append(("alerta", f"O preço simulado está abaixo do limiar de anormalidade "
@@ -611,7 +732,7 @@ def render_indicadores_calibracao(ctx: ContextoHistorico, preco_base_input):
         nota_help = (
             f"Baseado em {ctx.n_propostas_future_com_nota} proposta(s) real(is) da FUTURE com notas registadas."
             if ctx.nota_tecnica_future_real else
-            "Valor por omissão (85.0) — não existem notas técnicas reais da FUTURE no histórico filtrado."
+            f"Valor por omissão ({NOTA_TECNICA_FUTURE_OMISSAO}) — não existem notas técnicas reais da FUTURE no histórico filtrado."
         )
         st.metric(
             "Nota Técnica Esperada (FUTURE)" + ("" if ctx.nota_tecnica_future_real else " (estimado)"),
@@ -645,7 +766,7 @@ def render_indicadores_contexto(ctx: ContextoHistorico):
         nota_conc_help = (
             f"Baseado em {ctx.n_propostas_conc_com_nota} proposta(s) real(is) de concorrentes com notas registadas."
             if ctx.nota_tecnica_conc_real else
-            "Valor por omissão (82.0) — não existem notas técnicas reais de concorrentes no histórico filtrado."
+            f"Valor por omissão ({NOTA_TECNICA_CONC_OMISSAO}) — não existem notas técnicas reais de concorrentes no histórico filtrado."
         )
         st.metric("Nota Técnica Média da Concorrência" + ("" if ctx.nota_tecnica_conc_real else " (estimado)"),
                   f"{ctx.nota_tecnica_conc:.1f} Pts", help=nota_conc_help)
@@ -687,7 +808,23 @@ def render_tabelas_concorrencia(ctx: ContextoHistorico):
 def render_indice_estrategico(resultado, preco_future, valor_limiar_critico):
     with st.container(border=True):
         st.markdown("##### Índice Estratégico")
-        if resultado["excluido"]:
+        if resultado.get("indisponivel"):
+            # Fragilidade corrigida: antes disto, um índice em falta (NaN) era
+            # formatado diretamente com "{indice:.0f}", mostrando literalmente
+            # "nan" na interface, sem qualquer explicação para o utilizador.
+            st.markdown(
+                """
+                <div class="fs-index-wrap">
+                    <div class="fs-index-value" style="color:#64748b;">N/D</div>
+                    <div class="fs-index-label">de 100 pontos</div>
+                    <span class="fs-index-badge fs-badge-indisponivel">Índice Indisponível</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.warning("Não foi possível calcular o Índice Estratégico: faltam dados válidos "
+                       "(preço, nota técnica ou fiabilidade) para este cenário.")
+        elif resultado["excluido"]:
             st.markdown(
                 """
                 <div class="fs-index-wrap">
@@ -719,6 +856,9 @@ def render_indice_estrategico(resultado, preco_future, valor_limiar_critico):
 
 def render_explicacao_fatores(resultado, ctx: ContextoHistorico, w_preco, w_tecnico, preco_future, preco_medio_conc):
     with st.expander("Ver decomposição do Índice Estratégico por fator", expanded=False):
+        if resultado.get("indisponivel"):
+            st.write("Sem decomposição disponível — não existem dados suficientes para calcular o índice.")
+            return
         if resultado["excluido"]:
             st.write("Sem decomposição disponível — a proposta foi excluída por preço anormalmente baixo.")
             return
@@ -749,8 +889,11 @@ def render_curva_sensibilidade(df_curva, preco_future, preco_otimo_info, valor_l
     st.markdown("##### Curva de Sensibilidade ao Preço")
     st.caption("Mostra como o Índice Estratégico varia consoante o valor da proposta comercial, dentro do intervalo permitido.")
 
-    df_plot = df_curva.set_index("Preço")[["Índice Estratégico"]]
-    st.line_chart(df_plot)
+    df_plot = df_curva.dropna(subset=["Índice Estratégico"]).set_index("Preço")[["Índice Estratégico"]]
+    if df_plot.empty:
+        st.info("Não existem pontos válidos para desenhar a curva de sensibilidade com os dados atuais.")
+    else:
+        st.line_chart(df_plot)
 
     if preco_otimo_info:
         c1, c2, c3 = st.columns(3)
@@ -763,6 +906,8 @@ def render_curva_sensibilidade(df_curva, preco_future, preco_otimo_info, valor_l
             diferenca = preco_otimo_info["preco"] - preco_future
             st.metric("Diferença Face ao Preço Simulado", formatar_moeda(abs(diferenca)),
                       delta=f"{'reduzir' if diferenca < 0 else 'aumentar'}")
+    else:
+        st.info("Não foi possível determinar um preço ótimo com os dados disponíveis para este cenário.")
 
 
 def render_insights(insights):
@@ -807,7 +952,7 @@ def main():
                     "GEOLAB"
                 ])
                 distrito_sel = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
-                
+
             with col_in2:
                 preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
                 criterio_sel = st.selectbox("Critério de Avaliação", ["Preço Mais Baixo", "Qualidade/Preço (Fatores Ponderados)"])
@@ -1006,7 +1151,7 @@ def main():
             "Zimbabwe"
 ])
                 escalao_sim = definir_escalao(preco_base_input)
-                
+
             with col_in3:
                 limiar_anormal = st.number_input("Limiar Preço Anormalmente Baixo (% do Valor Base)", min_value=10.0, max_value=90.0, value=60.0, step=1.0)
                 if criterio_sel == "Preço Mais Baixo":
