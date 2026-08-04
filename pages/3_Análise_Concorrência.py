@@ -258,7 +258,7 @@ try:
 
                     with g_col2:
                         with st.container(border=True):
-                            desc_escalao = df_comp.groupby('escalao', observed=False)['diferenca_base_perc'].mean().reset_index()
+                            desc_escalao = df_comp_validos.groupby('escalao', observed=False)['diferenca_base_perc'].mean().reset_index()
                             desc_escalao.columns = ['Escalão', 'Diferença Média (%)']
                             fig2 = px.line(desc_escalao, x='Escalão', y='Diferença Média (%)', markers=True, title="Diferença Face ao Preço Base por Escalão (%)", color_discrete_sequence=['#FF991F'])
                             st.plotly_chart(fig2, use_container_width=True)
