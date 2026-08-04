@@ -132,26 +132,35 @@ try:
                 df_comp = df_geral_filtrado[df_geral_filtrado['nome_empresa'] == empresa_alvo].copy()
                 df_future = df_geral_filtrado[df_geral_filtrado['nome_empresa'].str.upper() == 'FUTURE'].copy()
 
+                # Dataframe sem desclassificados: usado para todas as médias/estatísticas
+                # que não devem ser "contaminadas" por propostas excluídas do concurso.
+                df_comp_validos = df_comp[~df_comp['desclassificado']].copy()
+
                 df_confrontos = pd.merge(df_comp, df_future, on='concurso_id', suffixes=('_comp', '_fut'))
+                # Confrontos válidos para efeitos de diferença média para a FUTURE:
+                # exclui propostas do concorrente que foram desclassificadas.
+                df_confrontos_validos_desc = df_confrontos[~df_confrontos['desclassificado_comp']].copy()
 
                 num_participacoes_total = df_comp['proposta_id'].nunique() if 'proposta_id' in df_comp.columns else len(df_comp)
                 num_participacoes_contra = df_confrontos['proposta_id_comp'].nunique() if 'proposta_id_comp' in df_confrontos.columns else len(df_confrontos)
                 num_vitorias_contra = df_confrontos['vencedor_comp'].sum() if not df_confrontos.empty else 0
 
-                valor_medio_proposto = df_comp['valor_proposto'].mean()
-                diferenca_media_base = df_comp['diferenca_base_perc'].mean()
+                # Estatísticas de valor/diferença: apenas propostas não desclassificadas
+                valor_medio_proposto = df_comp_validos['valor_proposto'].mean()
+                diferenca_media_base = df_comp_validos['diferenca_base_perc'].mean()
 
                 num_desclassificacoes = df_comp['desclassificado'].sum()
                 taxa_desclassificacao = (num_desclassificacoes / num_participacoes_total) * 100 if num_participacoes_total > 0 else 0.0
 
                 diff_media_para_nos = 0.0
-                if not df_confrontos.empty:
-                    df_confrontos_validos = df_confrontos[df_confrontos['valor_proposto_fut'] > 0]
+                if not df_confrontos_validos_desc.empty:
+                    df_confrontos_validos = df_confrontos_validos_desc[df_confrontos_validos_desc['valor_proposto_fut'] > 0]
                     if not df_confrontos_validos.empty:
                         df_confrontos_validos['diff_para_fut'] = ((df_confrontos_validos['valor_proposto_comp'] - df_confrontos_validos['valor_proposto_fut']) / df_confrontos_validos['valor_proposto_fut']) * 100
                         diff_media_para_nos = df_confrontos_validos['diff_para_fut'].mean()
 
-                classificacoes_validas = df_comp[df_comp['classificacao_final'] > 0]['classificacao_final']
+                # Classificação: apenas propostas não desclassificadas
+                classificacoes_validas = df_comp_validos[df_comp_validos['classificacao_final'] > 0]['classificacao_final']
                 class_media = classificacoes_validas.mean() if not classificacoes_validas.empty else 0
                 class_melhor = classificacoes_validas.min() if not classificacoes_validas.empty else 0
                 class_pior = classificacoes_validas.max() if not classificacoes_validas.empty else 0
@@ -223,7 +232,7 @@ try:
                         if not df_comp.empty and 'pais' in df_comp.columns and not df_comp['pais'].dropna().empty:
                             dist_pais = df_comp['pais'].value_counts(normalize=True).reset_index()
                             dist_pais.columns = ['País', 'Percentagem']
-                            dist_pais['Percentagem'] = (dist_distrito['Percentagem'] * 100).map('{:.1f}%'.format)
+                            dist_pais['Percentagem'] = (dist_pais['Percentagem'] * 100).map('{:.1f}%'.format)
                             st.table(dist_pais)
                         else: 
                             st.info("Sem dados geográficos.")
