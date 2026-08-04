@@ -1,12 +1,20 @@
 import streamlit as st
 import bcrypt
+from pathlib import Path
 from supabase import create_client, Client
 
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA PÁGINA PRINCIPAL
 # ==========================================================
-st.set_page_config(page_title="Portal | See Future", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Portal | FUTURE", layout="wide", initial_sidebar_state="collapsed")
+
+LOGO_PATH = Path(__file__).parent / "assets" / "future_logo.png"
+
+# Cores oficiais da marca FUTURE
+FUTURE_TEAL = "#00AEAD"       # Pantone 7711C
+FUTURE_TEAL_DARK = "#00807F"
+FUTURE_BLACK = "#232122"      # Pantone Black
 
 
 # ==========================================================
@@ -50,22 +58,21 @@ pg_clientes = st.Page("pages/4_Análise_Clientes.py", title="Análise Clientes")
 pg_estatisticas = st.Page("pages/5_Estatísticas_FUTURE.py", title="Estatísticas FUTURE")
 pg_gestao_utilizadores = st.Page("pages/6_Gestão_Utilizadores.py", title="Gestão Utilizadores")
 
-
 # --- Avaliação ---
 pg_posicionamento = st.Page("pages/7a_Posicionamento.py", title="Posicionamento", default=True)
 pg_rentabilidade = st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade")
 
 
 # ==========================================================
-# 5. CSS GLOBAL (cartões do menu principal)
+# 5. CSS GLOBAL — identidade visual FUTURE
 # ==========================================================
 st.markdown(
-    """
+    f"""
     <style>
-    .uau-card {
+    .uau-card {{
         background: linear-gradient(145deg, #ffffff, #f4f6f9);
         border: 1px solid #e1e4e8;
-        border-radius: 16px;
+        border-radius: 24px;
         padding: 40px 25px;
         text-align: center;
         box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.04), -5px -5px 20px rgba(255, 255, 255, 1);
@@ -75,31 +82,59 @@ st.markdown(
         flex-direction: column;
         justify-content: center;
         margin-bottom: 15px;
-    }
-    .uau-card:hover {
+        border-top: 4px solid {FUTURE_TEAL};
+    }}
+    .uau-card:hover {{
         transform: translateY(-8px);
-        box-shadow: 0px 15px 30px rgba(0, 82, 204, 0.15);
-        border-color: #00AEAD;
-    }
-    .uau-title {
-        color: #091E42;
+        box-shadow: 0px 15px 30px rgba(0, 174, 173, 0.25);
+        border-color: {FUTURE_TEAL};
+    }}
+    .uau-title {{
+        color: {FUTURE_BLACK};
         font-size: 28px;
         font-weight: 800;
         margin-bottom: 12px;
         letter-spacing: -0.5px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .uau-desc {
+    }}
+    .uau-desc {{
         color: #5E6C84;
         font-size: 15px;
         line-height: 1.6;
-    }
+    }}
+
+    /* Cabeçalho / topo com o gradiente de marca (como nas capas do manual) */
+    .future-header {{
+        background: linear-gradient(120deg, {FUTURE_TEAL}, {FUTURE_TEAL_DARK});
+        border-radius: 0 0 40px 40px;
+        padding: 18px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+    }}
+
+    /* Botões principais com a cor teal da marca */
+    div.stButton > button[kind="primary"] {{
+        background-color: {FUTURE_TEAL};
+        border: none;
+        border-radius: 10px;
+    }}
+    div.stButton > button[kind="primary"]:hover {{
+        background-color: {FUTURE_TEAL_DARK};
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
 
+def mostrar_logo(largura=150):
+    """Insere o logótipo FUTURE, se o ficheiro existir."""
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), width=largura)
+    else:
+        st.warning("Logótipo não encontrado em assets/future_logo.png")
 
 
 def ecra_login():
@@ -114,25 +149,27 @@ def ecra_login():
         unsafe_allow_html=True
     )
 
-
-    st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
-    st.title("Acesso Reservado")
-    st.markdown("Por favor, introduza as suas credenciais para aceder à plataforma **See Future**.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
     col_vazia1, col_login, col_vazia2 = st.columns([1, 2, 1])
 
-
     with col_login:
+        st.markdown("<div style='text-align: center; margin-bottom: 10px;'>", unsafe_allow_html=True)
+        mostrar_logo(200)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown(
+            "<div style='text-align: center; margin-bottom: 30px;'>"
+            "<h2 style='color:#232122;'>Acesso Reservado</h2>"
+            "<p>Por favor, introduza as suas credenciais para aceder à plataforma "
+            "<b>FUTURE</b>.</p></div>",
+            unsafe_allow_html=True
+        )
+
         with st.container(border=True):
             with st.form("form_login"):
-                email_inserido = st.text_input("Email Corporativo", placeholder="exemplo@seefuture.pt")
+                email_inserido = st.text_input("Email Corporativo", placeholder="exemplo@future-motion.eu")
                 password_inserida = st.text_input("Palavra-Passe", type="password", placeholder="••••••••")
 
-
                 submetido = st.form_submit_button("Iniciar Sessão", type="primary", use_container_width=True)
-
 
                 if submetido:
                     if email_inserido and password_inserida:
@@ -140,11 +177,9 @@ def ecra_login():
                             "email", email_inserido.strip().lower()
                         ).execute()
 
-
                         if len(resposta.data) > 0:
                             dados_utilizador = resposta.data[0]
                             hash_guardado = dados_utilizador['password_hash']
-
 
                             if bcrypt.checkpw(password_inserida.encode('utf-8'), hash_guardado.encode('utf-8')):
                                 st.session_state['autenticado'] = True
@@ -160,8 +195,6 @@ def ecra_login():
                         st.warning("É obrigatório preencher ambos os campos para validar o acesso.")
 
 
-
-
 def ecra_selecao_modulo():
     """Ecrã de seleção de módulo (Face 2) — Laboratório / Avaliação / Radar."""
     st.markdown(
@@ -174,8 +207,10 @@ def ecra_selecao_modulo():
         unsafe_allow_html=True
     )
 
-
-    col_header1, col_header2 = st.columns([4, 1])
+    # Cabeçalho com gradiente de marca + logótipo + sessão
+    col_logo, col_header1, col_header2 = st.columns([1, 3, 1])
+    with col_logo:
+        mostrar_logo(120)
     with col_header1:
         st.markdown(
             f"Sessão iniciada como: **{st.session_state['nome_utilizador']}** "
@@ -189,17 +224,13 @@ def ecra_selecao_modulo():
             st.session_state['modulo_ativo'] = 'menu'
             st.rerun()
 
-
     st.divider()
 
-
-    st.title("Plataforma See Future")
+    st.markdown(f"<h1 style='color:{FUTURE_BLACK};'>Plataforma FUTURE</h1>", unsafe_allow_html=True)
     st.markdown("Selecione o ambiente operacional ou estratégico pretendido.")
     st.markdown("<br>", unsafe_allow_html=True)
 
-
     col1, col2, col3 = st.columns(3)
-
 
     with col1:
         st.markdown(
@@ -215,7 +246,6 @@ def ecra_selecao_modulo():
             st.session_state['modulo_ativo'] = 'laboratorio'
             st.rerun()
 
-
     with col2:
         st.markdown(
             '''
@@ -229,7 +259,6 @@ def ecra_selecao_modulo():
         if st.button("Entrar na Avaliação", type="primary", use_container_width=True):
             st.session_state['modulo_ativo'] = 'avaliacao'
             st.rerun()
-
 
     with col3:
         st.markdown(
@@ -245,14 +274,11 @@ def ecra_selecao_modulo():
             st.info("O módulo Radar encontra-se em fase de desenvolvimento técnico e estará disponível brevemente.")
 
 
-
-
 # ==========================================================
 # 6. ROTEAMENTO PRINCIPAL
 # ==========================================================
 if not st.session_state['autenticado']:
     ecra_login()
-
 
 elif st.session_state['modulo_ativo'] == 'laboratorio':
     paginas_lab = [pg_dashboard, pg_novo, pg_consultar, pg_concorrencia, pg_clientes, pg_estatisticas]
@@ -261,12 +287,10 @@ elif st.session_state['modulo_ativo'] == 'laboratorio':
     nav = st.navigation(paginas_lab)
     nav.run()
 
-
 elif st.session_state['modulo_ativo'] == 'avaliacao':
     paginas_aval = [pg_posicionamento, pg_rentabilidade]
     nav = st.navigation(paginas_aval)
     nav.run()
-
 
 else:
     ecra_selecao_modulo()
