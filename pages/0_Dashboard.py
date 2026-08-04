@@ -201,7 +201,7 @@ try:
             with g_col2:
                 with st.container(border=True):
                     desc_ano = propostas_future.groupby('ano')['diferenca_perc'].mean().reset_index()
-                    fig2 = px.line(desc_ano, x='ano', y='diferenca_perc', markers=True, title="Evolução do Desconto Médio (%) face ao Preço Base", labels={'diferenca_perc': 'Desconto Médio (%)'}, color_discrete_sequence=['#FF991F'])
+                    fig2 = px.line(desc_ano, x='ano', y='diferenca_perc', markers=True, title="Evolução do Desconto Médio da FUTURE (%) face ao Preço Base", labels={'diferenca_perc': 'Desconto Médio (%)'}, color_discrete_sequence=['#FF991F'])
                     fig2.update_layout(xaxis=dict(tickformat="d"))
                     st.plotly_chart(fig2, use_container_width=True)
 
