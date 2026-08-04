@@ -66,6 +66,24 @@ pg_rentabilidade = st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade")
 # 5. CSS GLOBAL — identidade visual FUTURE
 # ==========================================================
 st.markdown(
+    """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Selo/badge do Streamlit Community Cloud (canto inferior direito) */
+    [data-testid="stStatusWidget"],
+    .viewerBadge_container__r5tak,
+    .viewerBadge_link__qRIco {
+        display: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
     f"""
     <style>
     .uau-card {{
