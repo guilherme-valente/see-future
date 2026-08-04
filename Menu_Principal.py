@@ -60,7 +60,7 @@ paginas_laboratorio = {
     "consultar": st.Page("pages/2_Consultar_Concursos.py", title="Consultar Concursos"),
     "concorrencia": st.Page("pages/3_Análise_Concorrência.py", title="Análise Concorrência"),
     "clientes": st.Page("pages/4_Análise_Clientes.py", title="Análise Clientes"),
-    "estatisticas": st.Page("pages/5_Estatísticas_FUTURE.py", title="Estatísticas FUTURE"),
+    "estatisticas": st.Page("pages/5_Estatísticas_Globais.py", title="Estatísticas Globais"),
     "gestao_utilizadores": st.Page("pages/6_Gestão_Utilizadores.py", title="Gestão Utilizadores"),
 }
 
