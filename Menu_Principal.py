@@ -126,9 +126,9 @@ st.markdown(
     /* Selo/badge do Streamlit Community Cloud (canto inferior direito) */
     [data-testid="stStatusWidget"],
     .viewerBadge_container__r5tak,
-    .viewerBadge_link__qRIco {
+    .viewerBadge_link__qRIco {{
         display: none !important;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True
