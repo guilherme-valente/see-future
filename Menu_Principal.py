@@ -7,9 +7,7 @@ from supabase import create_client, Client
 # ==========================================================
 # 1. CONFIGURAÇÃO DA PÁGINA PRINCIPAL
 # ==========================================================
-st.set_page_config(page_title="Portal | FUTURE", layout="wide", initial_sidebar_state="collapsed")
-
-LOGO_PATH = Path(__file__).parent / "assets" / "future_logo.png"
+st.set_page_config(page_title="Portal | SEE FUTURE", layout="wide", initial_sidebar_state="collapsed")
 
 # Cores oficiais da marca FUTURE
 FUTURE_TEAL = "#00AEAD"       # Pantone 7711C
@@ -128,15 +126,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-def mostrar_logo(largura=150):
-    """Insere o logótipo FUTURE, se o ficheiro existir."""
-    if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=largura)
-    else:
-        st.warning("Logótipo não encontrado em assets/future_logo.png")
-
-
 def ecra_login():
     """Formulário de autenticação (Face 1)."""
     st.markdown(
@@ -152,8 +141,7 @@ def ecra_login():
     col_vazia1, col_login, col_vazia2 = st.columns([1, 2, 1])
 
     with col_login:
-        st.markdown("<div style='text-align: center; margin-bottom: 10px;'>", unsafe_allow_html=True)
-        mostrar_logo(200)
+        st.markdown("<div style='text-align: left; margin-bottom: 10px;'>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown(
@@ -207,10 +195,8 @@ def ecra_selecao_modulo():
         unsafe_allow_html=True
     )
 
-    # Cabeçalho com gradiente de marca + logótipo + sessão
-    col_logo, col_header1, col_header2 = st.columns([1, 3, 1])
-    with col_logo:
-        mostrar_logo(120)
+    # Cabeçalho com gradiente de marca + sessão
+    col_header1, col_header2 = st.columns([1, 3, 1])
     with col_header1:
         st.markdown(
             f"Sessão iniciada como: **{st.session_state['nome_utilizador']}** "
@@ -226,7 +212,7 @@ def ecra_selecao_modulo():
 
     st.divider()
 
-    st.markdown(f"<h1 style='color:{FUTURE_BLACK};'>Plataforma FUTURE</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color:{FUTURE_BLACK};'>Plataforma SEE FUTURE</h1>", unsafe_allow_html=True)
     st.markdown("Selecione o ambiente operacional ou estratégico pretendido.")
     st.markdown("<br>", unsafe_allow_html=True)
 
