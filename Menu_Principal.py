@@ -148,13 +148,13 @@ def ecra_login():
             "<div style='text-align: center; margin-bottom: 30px;'>"
             "<h2 style='color:#232122;'>Acesso Reservado</h2>"
             "<p>Por favor, introduza as suas credenciais para aceder à plataforma "
-            "<b>FUTURE</b>.</p></div>",
+            "<b>SEE FUTURE</b>.</p></div>",
             unsafe_allow_html=True
         )
 
         with st.container(border=True):
             with st.form("form_login"):
-                email_inserido = st.text_input("Email Corporativo", placeholder="exemplo@future-motion.eu")
+                email_inserido = st.text_input("Email Corporativo", placeholder="exemplo@future.proman.pt")
                 password_inserida = st.text_input("Palavra-Passe", type="password", placeholder="••••••••")
 
                 submetido = st.form_submit_button("Iniciar Sessão", type="primary", use_container_width=True)
@@ -196,7 +196,7 @@ def ecra_selecao_modulo():
     )
 
     # Cabeçalho com gradiente de marca + sessão
-    col_header1, col_header2 = st.columns([1, 3, 1])
+    col_header1, col_header2 = st.columns([3, 1])
     with col_header1:
         st.markdown(
             f"Sessão iniciada como: **{st.session_state['nome_utilizador']}** "
