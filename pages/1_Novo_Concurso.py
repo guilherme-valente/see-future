@@ -37,7 +37,7 @@ def iniciar_ligacao():
 
 supabase: Client = iniciar_ligacao()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def carregar_clientes():
     resp = supabase.table("clientes").select("id, nome_cliente").order("nome_cliente").execute()
     return resp.data if resp.data else []
