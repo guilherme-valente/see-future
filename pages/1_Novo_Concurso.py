@@ -187,8 +187,8 @@ st.markdown("<br>", unsafe_allow_html=True)
 submetido = st.button("Guardar Registo na Base de Dados", type="primary", use_container_width=True)
 
 if submetido:
-    if not referencia or not cliente_nome:
-        st.error("A Referência e o Cliente são de preenchimento obrigatório.")
+    if not nome_concurso or not referencia or not cliente_nome:
+        st.error("O Nome, a Referência e o Cliente são de preenchimento obrigatório.")
     elif criterio == "Qualidade/Preço (Fatores Ponderados)" and soma_ponderacoes != 100:
         st.error("Impossível guardar o concurso: as ponderações não somam 100%.")
     else:
@@ -218,6 +218,7 @@ if submetido:
 
             # 2. Guardar Concurso
             dados_concurso = {
+                "nome_concurso": nome_concurso
                 "referencia": referencia,
                 "cliente_id": cliente_id,
                 "distrito": distrito,
@@ -306,7 +307,7 @@ if submetido:
                             "papel": papel
                         }).execute()
 
-            st.success(f"O concurso {referencia} foi registado com sucesso! Concorrentes desclassificados foram limpos automaticamente.")
+            st.success(f"O concurso {nome_concurso} com a referência {referencia} foi registado com sucesso! Concorrentes desclassificados foram limpos automaticamente.")
             
         except Exception as e:
             st.error(f"Erro ao comunicar com a base de dados: {e}")
