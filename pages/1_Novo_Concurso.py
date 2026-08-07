@@ -218,7 +218,7 @@ if submetido:
 
             # 2. Guardar Concurso
             dados_concurso = {
-                "nome_concurso": nome_concurso
+                "nome_concurso": nome_concurso,
                 "referencia": referencia,
                 "cliente_id": cliente_id,
                 "distrito": distrito,
