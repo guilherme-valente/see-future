@@ -1,7 +1,17 @@
 import streamlit as st
 import bcrypt
+import time
+from datetime import datetime, timezone
+from streamlit_cookies_controller import CookieController
 from pathlib import Path
 from supabase import create_client, Client
+
+# Tempo máximo de inatividade antes de forçar logout automático (em segundos)
+TEMPO_LIMITE_INATIVIDADE = 60 * 60  # 60 minutos
+ 
+# Controlador de cookies — permite persistir a sessão entre reloads do browser
+# e aplicar expiração mesmo que o separador continue aberto.
+cookies = CookieController()
 
 FAVICON_PATH = Path(__file__).parent / "assets" / "future_icon.png"
 
@@ -43,13 +53,45 @@ def garantir_estado(chave: str, valor_inicial):
     """Cria a chave no session_state caso ainda não exista."""
     if chave not in st.session_state:
         st.session_state[chave] = valor_inicial
-
-
+ 
+ 
 garantir_estado("autenticado", False)
 garantir_estado("nome_utilizador", "")
 garantir_estado("papel_utilizador", "")
-garantir_estado("modulo_ativo", "menu")  # 'menu' | 'laboratorio' | 'avaliacao'
-
+garantir_estado("modulo_ativo", "menu")
+garantir_estado("ultima_atividade", None)  # timestamp (epoch) da última interação
+ 
+ 
+def _agora() -> float:
+    return datetime.now(timezone.utc).timestamp()
+ 
+ 
+def registar_atividade():
+    """Atualiza o timestamp da última interação — chamar em cada rerun autenticado."""
+    st.session_state["ultima_atividade"] = _agora()
+    # Espelha o timestamp num cookie, para sobreviver a refresh de página (F5)
+    cookies.set("see_future_last_activity", str(_agora()))
+ 
+ 
+def sessao_expirou() -> bool:
+    """
+    Verifica se a sessão excedeu o tempo limite de inatividade.
+    Usa o cookie como fonte de verdade (sobrevive a F5), com fallback
+    para o session_state caso o cookie ainda não tenha sido lido.
+    """
+    ultima_str = cookies.get("see_future_last_activity")
+    if ultima_str is not None:
+        try:
+            ultima = float(ultima_str)
+        except (TypeError, ValueError):
+            ultima = st.session_state.get("ultima_atividade")
+    else:
+        ultima = st.session_state.get("ultima_atividade")
+ 
+    if ultima is None:
+        return False  # ainda não houve atividade registada (ex: acabou de fazer login)
+ 
+    return (_agora() - ultima) > TEMPO_LIMITE_INATIVIDADE
 
 # ==========================================================
 # PÁGINAS (st.Page)
@@ -161,12 +203,16 @@ def mostrar_cartao(titulo: str, descricao: str):
     )
 
 
-def terminar_sessao():
-    """Repõe o estado de autenticação e volta ao ecrã inicial."""
+def terminar_sessao(motivo: str | None = None):
+    """Repõe o estado de autenticação, limpa cookies e volta ao ecrã inicial."""
     st.session_state["autenticado"] = False
     st.session_state["nome_utilizador"] = ""
     st.session_state["papel_utilizador"] = ""
     st.session_state["modulo_ativo"] = "menu"
+    st.session_state["ultima_atividade"] = None
+    cookies.remove("see_future_last_activity")
+    if motivo:
+        st.session_state["mensagem_logout"] = motivo
     st.rerun()
 
 
@@ -218,6 +264,7 @@ def validar_login(email: str, password: str):
         st.session_state["autenticado"] = True
         st.session_state["nome_utilizador"] = utilizador["nome"]
         st.session_state["papel_utilizador"] = utilizador["papel"]
+        registar_atividade()
         st.success("Acesso Autorizado! A preparar ambiente...")
         st.rerun()
     else:
@@ -282,23 +329,32 @@ def ecra_selecao_modulo():
 # ROTEAMENTO PRINCIPAL
 # ==========================================================
 def rotear():
+    # Mostra mensagem de logout por inatividade, se aplicável (definida em terminar_sessao)
+    if st.session_state.pop("mensagem_logout", None):
+        st.warning("A sua sessão expirou por inatividade. Inicie sessão novamente.")
+ 
     if not st.session_state["autenticado"]:
         ecra_login()
         return
-
+ 
+    # Verifica inatividade a cada interação/rerun
+    if sessao_expirou():
+        terminar_sessao(motivo="inatividade")
+        return
+ 
+    # Regista esta interação como atividade válida
+    registar_atividade()
+ 
     modulo = st.session_state["modulo_ativo"]
-
+ 
     if modulo == "laboratorio":
-        paginas = list(paginas_laboratorio.values())[:-1]  # todas exceto gestão de utilizadores
+        paginas = list(paginas_laboratorio.values())[:-1]
         if str(st.session_state.get("papel_utilizador", "")).strip().lower() == "admin":
             paginas.append(paginas_laboratorio["gestao_utilizadores"])
         st.navigation(paginas).run()
-
     elif modulo == "avaliacao":
         st.navigation(paginas_avaliacao).run()
-
     else:
         ecra_selecao_modulo()
-
 
 rotear()
