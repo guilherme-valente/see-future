@@ -208,7 +208,7 @@ def validar_login(email: str, password: str):
     ).execute()
 
     if not resposta.data:
-        st.error("Não foi encontrado nenhum utilizador com este endereço de email.")
+        st.error("E-mail/Utilizador ou Palavra-Passe incorreto(s)")
         return
 
     utilizador = resposta.data[0]
@@ -221,7 +221,7 @@ def validar_login(email: str, password: str):
         st.success("Acesso Autorizado! A preparar ambiente...")
         st.rerun()
     else:
-        st.error("A palavra-passe introduzida está incorreta.")
+        st.error("E-mail/Utilizador ou Palavra-Passe incorreto(s)")
 
 
 # ==========================================================
