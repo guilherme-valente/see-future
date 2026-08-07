@@ -69,7 +69,7 @@ with st.container(border=True):
         else:
             cliente_nome = ""
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
-        if distrito == ["Internacional", "Outro"]:
+        if distrito in ["Internacional", "Outro"]:
             pais = st.selectbox("País", ["Portugal","Afeganistão","África do Sul","Albânia","Alemanha","Andorra","Angola",
             "Antígua e Barbuda","Arábia Saudita","Argélia","Argentina","Arménia","Austrália","Áustria","Azerbaijão","Bahamas","Bangladesh",
             "Barbados","Barém","Bélgica","Belize","Benim","Bielorrússia","Bolívia","Bósnia e Herzegovina","Botsuana","Brasil","Brunei",
@@ -91,7 +91,7 @@ with st.container(border=True):
             "Turcomenistão","Turquia","Tuvalu","Ucrânia","Uganda","Uruguai","Uzbequistão","Vanuatu","Vaticano","Venezuela","Vietname",
             "Zâmbia","Zimbabwe"
 ])
-        elif distrito == ["Norte", "Sul", "Centro", "Lisboa"]
+        else:
             pais = "Portugal"
         mercado = st.selectbox("Unidade de Negócio", [
             "Infraestruturas de Transporte",
