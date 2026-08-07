@@ -70,8 +70,7 @@ with st.container(border=True):
             cliente_nome = ""
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
         if distrito == "Internacional":
-            col_1 = st.columns(1)
-            with col_1: pais = st.selectbox("País", [
+            pais = st.selectbox("País", [
             "Portugal",
             "Afeganistão",
             "África do Sul",
