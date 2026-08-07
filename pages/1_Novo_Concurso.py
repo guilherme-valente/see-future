@@ -50,6 +50,7 @@ with st.container(border=True):
     col1, col2 = st.columns(2)
     
     with col1:
+        nome_concurso = st.text_input("Nome")
         referencia = st.text_input("Referência*")
         OPCAO_NOVO_CLIENTE = "+ Adicionar novo cliente..."
         opcoes_cliente = [OPCAO_NOVO_CLIENTE] + nomes_clientes_bd
@@ -68,7 +69,9 @@ with st.container(border=True):
         else:
             cliente_nome = ""
         distrito = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
-        pais = st.selectbox("País", [
+        if distrito == "Internacional":
+            col_1 = st.columns(1)
+            with col_1: pais = st.selectbox("País", [
             "Portugal",
             "Afeganistão",
             "África do Sul",
