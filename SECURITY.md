@@ -15,7 +15,6 @@ Se encontraste uma vulnerabilidade de segurança neste projeto, agradecemos que 
 
 Podes reportar através de qualquer um dos seguintes canais:
 
-- **GitHub Security Advisories (recomendado):** usa a funcionalidade [Report a vulnerability](../../security/advisories/new) deste repositório, para reporte privado diretamente ao maintainer.
 - **Email:** guilherme.ap.valente@gmail.com
 
 ### O que incluir no relatório
