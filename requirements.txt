@@ -5,4 +5,5 @@ plotly==6.9.0
 plotly-express==0.4.1
 bcrypt==5.0.0
 numpy==2.5.1
-starlette<1.4.0
+starlette>=0.40.0,<1.4.0
+streamlit-cookies-controller==0.0.4
