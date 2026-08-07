@@ -1,17 +1,12 @@
+import uuid
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
 import streamlit as st
 import bcrypt
-import time
-from datetime import datetime, timezone
-from streamlit_cookies_controller import CookieController
-from pathlib import Path
 from supabase import create_client, Client
-
-# Tempo máximo de inatividade antes de forçar logout automático (em segundos)
-TEMPO_LIMITE_INATIVIDADE = 60 * 60  # 60 minutos
- 
-# Controlador de cookies — permite persistir a sessão entre reloads do browser
-# e aplicar expiração mesmo que o separador continue aberto.
-cookies = CookieController()
+from streamlit_cookies_controller import CookieController
 
 FAVICON_PATH = Path(__file__).parent / "assets" / "future_icon.png"
 
@@ -26,9 +21,21 @@ st.set_page_config(
 )
 
 # Cores oficiais da marca FUTURE
-TEAL = "#00AEAD"        # Pantone 7711C
+TEAL = "#00AEAD"  # Pantone 7711C
 TEAL_DARK = "#00807F"
-BLACK = "#232122"       # Pantone Black
+BLACK = "#232122"  # Pantone Black
+
+# ==========================================================
+# CONFIGURAÇÃO DE SESSÃO / COOKIES
+# ==========================================================
+TEMPO_LIMITE_INATIVIDADE = timedelta(minutes=60)
+NOME_COOKIE_SESSAO = "see_future_session"
+
+cookies = CookieController()
+
+
+def _agora() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 # ==========================================================
@@ -45,7 +52,6 @@ except Exception as e:
     st.error(f"Erro de ligação ao servidor: {e}")
     st.stop()
 
-
 # ==========================================================
 # ESTADO DA SESSÃO
 # ==========================================================
@@ -53,45 +59,15 @@ def garantir_estado(chave: str, valor_inicial):
     """Cria a chave no session_state caso ainda não exista."""
     if chave not in st.session_state:
         st.session_state[chave] = valor_inicial
- 
- 
+
+
 garantir_estado("autenticado", False)
 garantir_estado("nome_utilizador", "")
 garantir_estado("papel_utilizador", "")
-garantir_estado("modulo_ativo", "menu")
-garantir_estado("ultima_atividade", None)  # timestamp (epoch) da última interação
- 
- 
-def _agora() -> float:
-    return datetime.now(timezone.utc).timestamp()
- 
- 
-def registar_atividade():
-    """Atualiza o timestamp da última interação — chamar em cada rerun autenticado."""
-    st.session_state["ultima_atividade"] = _agora()
-    # Espelha o timestamp num cookie, para sobreviver a refresh de página (F5)
-    cookies.set("see_future_last_activity", str(_agora()))
- 
- 
-def sessao_expirou() -> bool:
-    """
-    Verifica se a sessão excedeu o tempo limite de inatividade.
-    Usa o cookie como fonte de verdade (sobrevive a F5), com fallback
-    para o session_state caso o cookie ainda não tenha sido lido.
-    """
-    ultima_str = cookies.get("see_future_last_activity")
-    if ultima_str is not None:
-        try:
-            ultima = float(ultima_str)
-        except (TypeError, ValueError):
-            ultima = st.session_state.get("ultima_atividade")
-    else:
-        ultima = st.session_state.get("ultima_atividade")
- 
-    if ultima is None:
-        return False  # ainda não houve atividade registada (ex: acabou de fazer login)
- 
-    return (_agora() - ultima) > TEMPO_LIMITE_INATIVIDADE
+garantir_estado("utilizador_id", None)
+garantir_estado("modulo_ativo", "menu")  # 'menu' | 'laboratorio' | 'avaliacao'
+garantir_estado("sessao_token", None)
+garantir_estado("sessao_restaurada", False)  # evita repetir a restauração em todo rerun
 
 # ==========================================================
 # PÁGINAS (st.Page)
@@ -110,7 +86,6 @@ paginas_avaliacao = [
     st.Page("pages/7a_Posicionamento.py", title="Posicionamento", default=True),
     st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade"),
 ]
-
 
 # ==========================================================
 # CSS GLOBAL — identidade visual FUTURE
@@ -186,9 +161,8 @@ CSS_ESCONDER_SIDEBAR = """
 
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 
-
 # ==========================================================
-# FUNÇÕES AUXILIARES
+# FUNÇÕES AUXILIARES — UI
 # ==========================================================
 def mostrar_cartao(titulo: str, descricao: str):
     """Desenha um cartão de apresentação de módulo."""
@@ -203,16 +177,160 @@ def mostrar_cartao(titulo: str, descricao: str):
     )
 
 
-def terminar_sessao(motivo: str | None = None):
-    """Repõe o estado de autenticação, limpa cookies e volta ao ecrã inicial."""
+# ==========================================================
+# FUNÇÕES AUXILIARES — SESSÃO, COOKIES E LOGS
+# ==========================================================
+def criar_sessao(utilizador: dict) -> str:
+    """Cria um registo de sessão na BD, define o cookie e o session_state."""
+    token = str(uuid.uuid4())
+    expira_em = _agora() + TEMPO_LIMITE_INATIVIDADE
+
+    supabase.table("sessoes_ativas").insert({
+        "token": token,
+        "utilizador_id": utilizador["id"],
+        "criado_em": _agora().isoformat(),
+        "ultima_atividade": _agora().isoformat(),
+        "expira_em": expira_em.isoformat(),
+    }).execute()
+
+    st.session_state["autenticado"] = True
+    st.session_state["nome_utilizador"] = utilizador["nome"]
+    st.session_state["papel_utilizador"] = utilizador["papel"]
+    st.session_state["utilizador_id"] = utilizador["id"]
+    st.session_state["sessao_token"] = token
+
+    cookies.set(
+        NOME_COOKIE_SESSAO,
+        token,
+        max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
+    )
+
+    registar_log(utilizador["id"], utilizador.get("email", ""), "login", sessao_token=token)
+    return token
+
+
+def restaurar_sessao_do_cookie():
+    """
+    Ao carregar a app (ex: após F5), tenta restaurar a sessão a partir
+    do token guardado no cookie, validando-o contra a tabela sessoes_ativas.
+    """
+    if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
+        return
+
+    st.session_state["sessao_restaurada"] = True  # só tenta uma vez por carregamento
+    token = cookies.get(NOME_COOKIE_SESSAO)
+    if not token:
+        return
+
+    resposta = supabase.table("sessoes_ativas").select("*, utilizadores(*)").eq(
+        "token", token
+    ).execute()
+
+    if not resposta.data:
+        cookies.remove(NOME_COOKIE_SESSAO)
+        return
+
+    sessao = resposta.data[0]
+    expira_em = datetime.fromisoformat(sessao["expira_em"])
+    if expira_em < _agora():
+        supabase.table("sessoes_ativas").delete().eq("token", token).execute()
+        cookies.remove(NOME_COOKIE_SESSAO)
+        return
+
+    utilizador = sessao["utilizadores"]
+    st.session_state["autenticado"] = True
+    st.session_state["nome_utilizador"] = utilizador["nome"]
+    st.session_state["papel_utilizador"] = utilizador["papel"]
+    st.session_state["utilizador_id"] = utilizador["id"]
+    st.session_state["sessao_token"] = token
+
+    registar_atividade()
+
+
+def registar_atividade():
+    """Atualiza 'última atividade' na BD e prolonga a expiração da sessão + cookie."""
+    token = st.session_state.get("sessao_token")
+    if not token:
+        return
+
+    nova_expiracao = _agora() + TEMPO_LIMITE_INATIVIDADE
+    supabase.table("sessoes_ativas").update({
+        "ultima_atividade": _agora().isoformat(),
+        "expira_em": nova_expiracao.isoformat(),
+    }).eq("token", token).execute()
+
+    cookies.set(
+        NOME_COOKIE_SESSAO,
+        token,
+        max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
+    )
+
+
+def sessao_expirou() -> bool:
+    token = st.session_state.get("sessao_token")
+    if not token:
+        return False
+
+    resposta = supabase.table("sessoes_ativas").select("expira_em").eq("token", token).execute()
+    if not resposta.data:
+        return True  # sessão foi removida da BD (ex: admin forçou logout)
+
+    expira_em = datetime.fromisoformat(resposta.data[0]["expira_em"])
+    return expira_em < _agora()
+
+
+def registar_log(utilizador_id, email: str, evento: str, detalhe: str = None, sessao_token: str = None):
+    """Escreve uma linha na tabela logs_atividade. Nunca deve rebentar a app."""
+    try:
+        supabase.table("logs_atividade").insert({
+            "utilizador_id": utilizador_id,
+            "email": email,
+            "evento": evento,
+            "detalhe": detalhe,
+            "sessao_token": sessao_token or st.session_state.get("sessao_token"),
+        }).execute()
+    except Exception:
+        pass  # falha a registar log nunca deve impedir o uso da app
+
+
+def registar_pagina_vista(nome_pagina: str):
+    """Chamar no topo de cada página em pages/ para registar navegação."""
+    registar_log(
+        st.session_state.get("utilizador_id"),
+        "",
+        "pagina_vista",
+        detalhe=nome_pagina,
+    )
+
+
+def terminar_sessao(motivo: str = "manual"):
+    """Repõe o estado de autenticação, limpa cookies/BD e volta ao ecrã inicial."""
+    token = st.session_state.get("sessao_token")
+    utilizador_id = st.session_state.get("utilizador_id")
+
+    if token:
+        registar_log(
+            utilizador_id, "",
+            "logout" if motivo == "manual" else "logout_inatividade",
+            sessao_token=token,
+        )
+        try:
+            supabase.table("sessoes_ativas").delete().eq("token", token).execute()
+        except Exception:
+            pass
+
+    cookies.remove(NOME_COOKIE_SESSAO)
+
     st.session_state["autenticado"] = False
     st.session_state["nome_utilizador"] = ""
     st.session_state["papel_utilizador"] = ""
+    st.session_state["utilizador_id"] = None
+    st.session_state["sessao_token"] = None
     st.session_state["modulo_ativo"] = "menu"
-    st.session_state["ultima_atividade"] = None
-    cookies.remove("see_future_last_activity")
-    if motivo:
-        st.session_state["mensagem_logout"] = motivo
+    st.session_state["sessao_restaurada"] = False
+
+    if motivo == "inatividade":
+        st.session_state["mensagem_logout"] = True
     st.rerun()
 
 
@@ -223,7 +341,6 @@ def ecra_login():
     st.markdown(CSS_ESCONDER_SIDEBAR, unsafe_allow_html=True)
 
     _, col_login, _ = st.columns([1, 2, 1])
-
     with col_login:
         st.markdown(
             "<div style='text-align: center; margin-bottom: 30px;'>"
@@ -254,21 +371,18 @@ def validar_login(email: str, password: str):
     ).execute()
 
     if not resposta.data:
-        st.error("E-mail/Utilizador ou Palavra-Passe incorreto(s)")
+        st.error("Não foi encontrado nenhum utilizador com este endereço de email.")
         return
 
     utilizador = resposta.data[0]
     hash_guardado = utilizador["password_hash"]
 
     if bcrypt.checkpw(password.encode("utf-8"), hash_guardado.encode("utf-8")):
-        st.session_state["autenticado"] = True
-        st.session_state["nome_utilizador"] = utilizador["nome"]
-        st.session_state["papel_utilizador"] = utilizador["papel"]
-        registar_atividade()
+        criar_sessao(utilizador)
         st.success("Acesso Autorizado! A preparar ambiente...")
         st.rerun()
     else:
-        st.error("E-mail/Utilizador ou Palavra-Passe incorreto(s)")
+        st.error("A palavra-passe introduzida está incorreta.")
 
 
 # ==========================================================
@@ -285,7 +399,7 @@ def ecra_selecao_modulo():
         )
     with col_sair:
         if st.button("Terminar Sessão", use_container_width=True):
-            terminar_sessao()
+            terminar_sessao(motivo="manual")
 
     st.divider()
 
@@ -329,26 +443,25 @@ def ecra_selecao_modulo():
 # ROTEAMENTO PRINCIPAL
 # ==========================================================
 def rotear():
-    # Mostra mensagem de logout por inatividade, se aplicável (definida em terminar_sessao)
-    if st.session_state.pop("mensagem_logout", None):
+    restaurar_sessao_do_cookie()
+
+    if st.session_state.pop("mensagem_logout", False):
         st.warning("A sua sessão expirou por inatividade. Inicie sessão novamente.")
- 
+
     if not st.session_state["autenticado"]:
         ecra_login()
         return
- 
-    # Verifica inatividade a cada interação/rerun
+
     if sessao_expirou():
         terminar_sessao(motivo="inatividade")
         return
- 
-    # Regista esta interação como atividade válida
+
     registar_atividade()
- 
+
     modulo = st.session_state["modulo_ativo"]
- 
+
     if modulo == "laboratorio":
-        paginas = list(paginas_laboratorio.values())[:-1]
+        paginas = list(paginas_laboratorio.values())[:-1]  # todas exceto gestão de utilizadores
         if str(st.session_state.get("papel_utilizador", "")).strip().lower() == "admin":
             paginas.append(paginas_laboratorio["gestao_utilizadores"])
         st.navigation(paginas).run()
@@ -356,5 +469,6 @@ def rotear():
         st.navigation(paginas_avaliacao).run()
     else:
         ecra_selecao_modulo()
+
 
 rotear()
