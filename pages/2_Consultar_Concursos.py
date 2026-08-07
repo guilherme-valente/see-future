@@ -276,7 +276,7 @@ try:
         if pesquisa_texto:
             termo = pesquisa_texto.strip().lower()
             df_filtrado = df_filtrado[
-                df_filtrad['nome_concurso'].astype(str).str.lower().str.contains(termo, na=False) |
+                df_filtrado['nome_concurso'].astype(str).str.lower().str.contains(termo, na=False) |
                 df_filtrado['referencia'].astype(str).str.lower().str.contains(termo, na=False) |
                 df_filtrado['Cliente'].astype(str).str.lower().str.contains(termo, na=False)
             ]
