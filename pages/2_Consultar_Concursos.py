@@ -257,7 +257,7 @@ try:
         with st.expander("Abrir Filtros de Pesquisa", expanded=True):
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
-                pesquisa_texto = st.text_input("Referência ou Cliente", placeholder="Escreva o termo de pesquisa...")
+                pesquisa_texto = st.text_input("Nome, Referência ou Cliente", placeholder="Escreva o termo de pesquisa...")
             with c2:
                 filtro_mercado = st.multiselect("Unidade de Negócio", options=sorted(df_concursos['mercado'].dropna().unique()))
             with c3:
@@ -276,6 +276,7 @@ try:
         if pesquisa_texto:
             termo = pesquisa_texto.strip().lower()
             df_filtrado = df_filtrado[
+                df_filtrad['nome_concurso'].astype(str).str.lower().str.contains(termo, na=False) |
                 df_filtrado['referencia'].astype(str).str.lower().str.contains(termo, na=False) |
                 df_filtrado['Cliente'].astype(str).str.lower().str.contains(termo, na=False)
             ]
@@ -299,8 +300,8 @@ try:
         st.markdown(f"**Resultados Encontrados:** {len(df_filtrado)} concursos")
 
         if not df_filtrado.empty:
-            df_resumo = df_filtrado[['referencia', 'Cliente', 'Pais', 'mercado', 'Distrito', 'preco_base', 'Nº Concorrentes', 'estado', 'data_concurso']].copy()
-            df_resumo.columns = ['Referência', 'Cliente', 'País', 'Unidade de Negócio', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
+            df_resumo = df_filtrado[['nome_concurso', 'referencia', 'Cliente', 'Pais', 'mercado', 'Distrito', 'preco_base', 'Nº Concorrentes', 'estado', 'data_concurso']].copy()
+            df_resumo.columns = ['Nome', 'Referência', 'Cliente', 'País', 'Unidade de Negócio', 'Distrito', 'Preço Base (€)', 'Nº Concorrentes', 'Estado', 'Data']
 
             st.dataframe(df_resumo, use_container_width=True, hide_index=True)
             st.divider()
@@ -473,7 +474,7 @@ try:
                 # --- MODO VISUALIZAÇÃO PADRÃO ---
                 else:
                     with st.container(border=True):
-                        st.markdown(f"### Ficha do Concurso: {dados_cc['referencia']}")
+                        st.markdown(f"### Ficha do Concurso: {dados_cc['referencia']} — {dados_cc.get('nome_concurso', '')}")
                         colA, colB, colC = st.columns(3)
                         with colA:
                             st.markdown(f"**Cliente:** {dados_cc['Cliente']}")
