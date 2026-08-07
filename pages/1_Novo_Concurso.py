@@ -50,7 +50,7 @@ with st.container(border=True):
     col1, col2 = st.columns(2)
     
     with col1:
-        nome_concurso = st.text_input("Nome")
+        nome_concurso = st.text_input("Nome*")
         referencia = st.text_input("Referência*")
         OPCAO_NOVO_CLIENTE = "+ Adicionar novo cliente..."
         opcoes_cliente = [OPCAO_NOVO_CLIENTE] + nomes_clientes_bd
