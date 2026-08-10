@@ -7,4 +7,4 @@ bcrypt==5.0.0
 numpy==2.5.1
 starlette>=0.40.0,<1.4.0
 streamlit-cookies-controller==0.0.4
-requests==2.32.3
+requests==2.33.0
