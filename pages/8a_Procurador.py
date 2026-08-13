@@ -1,5 +1,6 @@
 import streamlit as st
-from utils.radar import carregar_anuncios, inferir_estado, calcular_score
+from supabase import create_client
+from datetime import datetime
 
 if 'autenticado' not in st.session_state or not st.session_state['autenticado']:
     st.error("Acesso negado. Por favor, inicie sessão na página inicial para aceder a este conteúdo.")
@@ -14,21 +15,92 @@ with st.sidebar:
 st.set_page_config(page_title="Procurador | See Future", layout="wide")
 st.title("Procurador de Concursos")
 
-anuncios = carregar_anuncios("data/anuncios2026.json")
+@st.cache_resource
+def get_client():
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-palavras_chave = st.text_input("Palavras-chave (separadas por vírgula)", "seguros, hospitalar")
-lista_palavras = [p.strip() for p in palavras_chave.split(",") if p.strip()]
+client = get_client()
+
+@st.cache_data(ttl=300)
+def carregar_configs():
+    resp = client.table("radar_config").select("*").eq("ativo", True).execute()
+    return resp.data
+
+configs = carregar_configs()
+
+if not configs:
+    st.warning("Não existem configurações de radar ativas. Cria uma em radar_config para começar.")
+    st.stop()
+
+nomes_config = {c["unidade_negocio"]: c for c in configs}
+unidade_selecionada = st.selectbox("Unidade de negócio", list(nomes_config.keys()))
+config = nomes_config[unidade_selecionada]
+
+if config.get("descricao"):
+    st.caption(config["descricao"])
+
+@st.cache_data(ttl=300)
+def carregar_leads_abertos():
+    resp = client.table("radar_leads").select("*").eq("estado_concurso_origem", "aberto").execute()
+    return resp.data
+
+leads = carregar_leads_abertos()
+
+def calcular_score(lead: dict, cfg: dict) -> int:
+    score = 0
+    detalhe = []
+
+    cpv_config = set(cfg.get("cpv_codes") or [])
+    cpv_lead = set(lead.get("cpv") or [])
+    if cpv_config and cpv_lead & cpv_config:
+        score += 40
+        detalhe.append("CPV coincide")
+
+    texto = (lead.get("objeto_concurso") or "").lower()
+    palavras = cfg.get("palavras_chave") or []
+    correspondencias = [p for p in palavras if p.lower() in texto]
+    if correspondencias:
+        score += 10 * len(correspondencias)
+        detalhe.append(f"Palavras-chave: {', '.join(correspondencias)}")
+
+    valor = lead.get("valor_base")
+    valor_min = cfg.get("valor_min")
+    valor_max = cfg.get("valor_max")
+    if valor is not None:
+        if valor_min is not None and valor < valor_min:
+            return 0, []
+        if valor_max is not None and valor > valor_max:
+            return 0, []
+
+    entidades_ignoradas = set(cfg.get("entidades_ignoradas") or [])
+    if lead.get("entidade_adjudicante") in entidades_ignoradas:
+        return 0, []
+
+    return score, detalhe
 
 resultados = []
-for a in anuncios:
-    estado = inferir_estado(a)
-    if estado != "aberto":
-        continue
-    score = calcular_score(a, lista_palavras)
-    if score > 0:
-        resultados.append({**a, "estado": estado, "score": score})
+for lead in leads:
+    score, detalhe = calcular_score(lead, config)
+    if score >= (config.get("score_minimo") or 0):
+        resultados.append({**lead, "score_calculado": score, "detalhe_score": "; ".join(detalhe)})
 
-resultados.sort(key=lambda x: x["score"], reverse=True)
+resultados.sort(key=lambda r: r["score_calculado"], reverse=True)
 
-st.write(f"{len(resultados)} concursos ativos relevantes")
-st.dataframe(resultados)
+st.write(f"**{len(resultados)}** concursos relevantes para **{unidade_selecionada}** (de {len(leads)} abertos)")
+
+for lead in resultados:
+    with st.container(border=True):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown(f"**{lead['objeto_concurso']}**")
+            st.caption(f"{lead['entidade_adjudicante']} · Ref. {lead['referencia_base']}")
+            if lead.get("valor_base"):
+                st.caption(f"Valor base: {lead['valor_base']:,.2f} €")
+            if lead.get("data_limite_propostas"):
+                st.caption(f"Prazo: {lead['data_limite_propostas']}")
+            if lead.get("link_base"):
+                st.markdown(f"[Ver anúncio]({lead['link_base']})")
+        with col2:
+            st.metric("Score", lead["score_calculado"])
+            if lead.get("detalhe_score"):
+                st.caption(lead["detalhe_score"])
