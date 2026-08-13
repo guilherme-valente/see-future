@@ -1,6 +1,5 @@
 import streamlit as st
 from supabase import create_client
-from datetime import datetime
 
 if 'autenticado' not in st.session_state or not st.session_state['autenticado']:
     st.error("Acesso negado. Por favor, inicie sessão na página inicial para aceder a este conteúdo.")
@@ -32,7 +31,8 @@ if not configs:
     st.warning("Não existem configurações de radar ativas. Cria uma em radar_config para começar.")
     st.stop()
 
-nomes_config = {c["unidade_negocio"]: c for c in configs}
+configs_ordenadas = sorted(configs, key=lambda c: c.get("prioridade") or 999)
+nomes_config = {c["unidade_negocio"]: c for c in configs_ordenadas}
 unidade_selecionada = st.selectbox("Unidade de negócio", list(nomes_config.keys()))
 config = nomes_config[unidade_selecionada]
 
@@ -46,12 +46,16 @@ def carregar_leads_abertos():
 
 leads = carregar_leads_abertos()
 
-def calcular_score(lead: dict, cfg: dict) -> int:
+def normalizar_cpv(codigo: str) -> str:
+    """Remove o dígito de controlo (ex: '71318100-1' -> '71318100')."""
+    return codigo.split("-")[0].strip()
+
+def calcular_score(lead: dict, cfg: dict) -> tuple[int, list[str]]:
     score = 0
     detalhe = []
 
-    cpv_config = set(cfg.get("cpv_codes") or [])
-    cpv_lead = set(lead.get("cpv") or [])
+    cpv_config = {normalizar_cpv(c) for c in (cfg.get("cpv_codes") or [])}
+    cpv_lead = {normalizar_cpv(c) for c in (lead.get("cpv") or [])}
     if cpv_config and cpv_lead & cpv_config:
         score += 40
         detalhe.append("CPV coincide")
