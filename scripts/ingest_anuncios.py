@@ -9,7 +9,11 @@ from utils.radar import inferir_estado
 URL_RECURSO = "https://dados.gov.pt/api/1/datasets/r/1002987e-8985-492f-9215-e732fffdbc83/"
 
 def descarregar_anuncios() -> list[dict]:
-    resp = requests.get(URL_RECURSO, timeout=180)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    }
+    resp = requests.get(URL_RECURSO, headers=headers, timeout=180, allow_redirects=True)
     resp.raise_for_status()
     return resp.json()
 
