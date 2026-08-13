@@ -87,6 +87,10 @@ paginas_avaliacao = [
     st.Page("pages/7b_Rentabilidade.py", title="Rentabilidade"),
 ]
 
+paginas_radar = [
+    st.Page("pages/8a_Procurador.py", title="Procurador", default=True),
+]
+
 # ==========================================================
 # CSS GLOBAL — identidade visual FUTURE
 # ==========================================================
@@ -436,8 +440,8 @@ def ecra_selecao_modulo():
             "avançada e mapeamento preventivo de mercado.",
         )
         if st.button("Entrar no Radar", type="primary", use_container_width=True):
-            st.info("O módulo Radar encontra-se em fase de desenvolvimento técnico e estará disponível brevemente.")
-
+            st.session_state["modulo_ativo"] = "radar"
+            st.rerun()
 
 # ==========================================================
 # ROTEAMENTO PRINCIPAL
@@ -461,12 +465,14 @@ def rotear():
     modulo = st.session_state["modulo_ativo"]
 
     if modulo == "laboratorio":
-        paginas = list(paginas_laboratorio.values())[:-1]  # todas exceto gestão de utilizadores
+        paginas = list(paginas_laboratorio.values())[:-1]
         if str(st.session_state.get("papel_utilizador", "")).strip().lower() == "admin":
             paginas.append(paginas_laboratorio["gestao_utilizadores"])
         st.navigation(paginas).run()
     elif modulo == "avaliacao":
         st.navigation(paginas_avaliacao).run()
+    elif modulo == "radar":
+        st.navigation(paginas_radar).run()
     else:
         ecra_selecao_modulo()
 
