@@ -108,3 +108,15 @@ for lead in resultados:
             st.metric("Score", lead["score_calculado"])
             if lead.get("detalhe_score"):
                 st.caption(lead["detalhe_score"])
+
+st.divider()
+with st.expander("Diagnóstico: concursos com alguma correspondência, mas abaixo do score mínimo"):
+    quase = []
+    for lead in leads:
+        score, detalhe = calcular_score(lead, config)
+        if 0 < score < (config.get("score_minimo") or 0):
+            quase.append({**lead, "score_calculado": score, "detalhe_score": "; ".join(detalhe)})
+    quase.sort(key=lambda r: r["score_calculado"], reverse=True)
+    st.write(f"{len(quase)} concursos com correspondência parcial")
+    for lead in quase[:20]:
+        st.write(f"**{lead['score_calculado']} pts** — {lead['objeto_concurso'][:100]} ({lead['detalhe_score']})")
