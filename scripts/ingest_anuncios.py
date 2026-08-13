@@ -1,21 +1,23 @@
 import os
 import requests
 import tomllib
+import time
 from pathlib import Path
 from datetime import datetime
 from supabase import create_client
 from utils.radar import inferir_estado
 
+
 URL_RECURSO = "https://dados.gov.pt/api/1/datasets/r/1002987e-8985-492f-9215-e732fffdbc83/"
 
 def descarregar_anuncios() -> list[dict]:
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-    }
-    resp = requests.get(URL_RECURSO, headers=headers, timeout=180, allow_redirects=True)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
+    for tentativa in range(3):
+        resp = requests.get(URL_RECURSO, headers=headers, timeout=180)
+        if resp.status_code == 200:
+            return resp.json()
+        time.sleep(5 * (tentativa + 1))
     resp.raise_for_status()
-    return resp.json()
 
 def get_client():
     url = os.environ.get("SUPABASE_URL") or st.secrets["SUPABASE_URL"]
