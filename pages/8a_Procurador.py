@@ -1,5 +1,7 @@
 import streamlit as st
 from supabase import create_client
+from difflib import SequenceMatcher
+from utils.extracao_pdf import extrair_campos_do_anuncio
 
 if 'autenticado' not in st.session_state or not st.session_state['autenticado']:
     st.error("Acesso negado. Por favor, inicie sessão na página inicial para aceder a este conteúdo.")
@@ -57,7 +59,13 @@ def carregar_leads_abertos():
     resp = client.table("radar_leads").select("*").eq("estado_concurso_origem", "aberto").execute()
     return resp.data
 
+@st.cache_data(ttl=300)
+def carregar_nomes_clientes():
+    resp = client.table("clientes").select("nome_cliente").execute()
+    return [c["nome_cliente"] for c in resp.data] if resp.data else []
+
 leads = carregar_leads_abertos()
+nomes_clientes = carregar_nomes_clientes()
 
 def normalizar_cpv(codigo: str) -> str:
     """Remove o dígito de controlo (ex: '71318100-1' -> '71318100')."""
@@ -104,7 +112,22 @@ def cor_por_score(score: int, minimo: int) -> tuple[str, str, str]:
     else:
         return "#f8d7da", "#721c24", "Prioridade baixa"
 
-def renderizar_cartao(lead: dict, score: int, detalhe: list[str], minimo: int, score_max: int):
+def encontrar_cliente_semelhante(nome_radar: str, lista_clientes: list[str], limiar_auto: float = 0.85):
+    """Devolve (cliente_escolhido, foi_correspondencia_automatica, pontuacao)."""
+    if not nome_radar or not lista_clientes:
+        return None, False, 0.0
+    melhor_nome = None
+    melhor_pontuacao = 0.0
+    for cliente in lista_clientes:
+        pontuacao = SequenceMatcher(None, nome_radar.lower(), cliente.lower()).ratio()
+        if pontuacao > melhor_pontuacao:
+            melhor_pontuacao = pontuacao
+            melhor_nome = cliente
+    if melhor_pontuacao >= limiar_auto:
+        return melhor_nome, True, melhor_pontuacao
+    return None, False, melhor_pontuacao
+
+def renderizar_cartao(lead: dict, score: int, detalhe: list[str], minimo: int, score_max: int, unidade: str):
     cor_fundo, cor_texto, label = cor_por_score(score, minimo)
     percentagem = min(int((score / score_max) * 100), 100) if score_max else 0
 
@@ -148,6 +171,32 @@ def renderizar_cartao(lead: dict, score: int, detalhe: list[str], minimo: int, s
     </div>
     """, unsafe_allow_html=True)
 
+    if st.button("Fazer Avaliação", key=f"avaliar_{lead['id']}", use_container_width=True):
+        with st.spinner("A ler o anúncio e a preparar a avaliação..."):
+            campos_pdf = {"peso_preco": None, "limiar_anormal": None, "distrito": None}
+            if lead.get("link_base"):
+                campos_pdf = extrair_campos_do_anuncio(lead["link_base"])
+
+            cliente_correspondido, foi_auto, pontuacao = encontrar_cliente_semelhante(
+                lead.get("entidade_adjudicante"), nomes_clientes
+            )
+
+        st.session_state["prefill_posicionamento"] = {
+            "entidade_adjudicante": cliente_correspondido or lead.get("entidade_adjudicante"),
+            "entidade_original_radar": lead.get("entidade_adjudicante"),
+            "correspondencia_automatica": foi_auto,
+            "pontuacao_correspondencia": pontuacao,
+            "valor_base": lead.get("valor_base"),
+            "unidade_negocio": unidade,
+            "referencia_base": lead.get("referencia_base"),
+            "objeto_concurso": lead.get("objeto_concurso"),
+            "peso_preco": campos_pdf["peso_preco"],
+            "limiar_anormal": campos_pdf["limiar_anormal"],
+            "distrito": campos_pdf["distrito"],
+        }
+        st.session_state["modulo_ativo"] = "avaliacao"
+        st.rerun()
+
 score_minimo = config.get("score_minimo") or 40
 
 resultados = []
@@ -167,9 +216,9 @@ score_max_geral = max([r[1] for r in resultados] + [q[1] for q in quase], defaul
 st.write(f"**{len(resultados)}** concursos relevantes para **{unidade_selecionada}** (de {len(leads)} abertos)")
 
 for lead, score, detalhe in resultados:
-    renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral)
+    renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral, unidade_selecionada)
 
 st.divider()
 with st.expander(f"Correspondência parcial — abaixo do score mínimo ({len(quase)} concursos)"):
     for lead, score, detalhe in quase[:30]:
-        renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral)
+        renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral, unidade_selecionada)
