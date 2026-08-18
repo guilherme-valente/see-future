@@ -86,37 +86,66 @@ resultados = []
 for lead in leads:
     score, detalhe = calcular_score(lead, config)
     if score >= (config.get("score_minimo") or 0):
-        resultados.append({**lead, "score_calculado": score, "detalhe_score": "; ".join(detalhe)})
+        resultados.append({**lead, "score_calculado": score, "detalhe_score": detalhe})
 
 resultados.sort(key=lambda r: r["score_calculado"], reverse=True)
 
 st.write(f"**{len(resultados)}** concursos relevantes para **{unidade_selecionada}** (de {len(leads)} abertos)")
 
-for lead in resultados:
-    with st.container(border=True):
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.markdown(f"**{lead['objeto_concurso']}**")
-            st.caption(f"{lead['entidade_adjudicante']} · Ref. {lead['referencia_base']}")
-            if lead.get("valor_base"):
-                st.caption(f"Valor base: {lead['valor_base']:,.2f} €")
-            if lead.get("data_limite_propostas"):
-                st.caption(f"Prazo: {lead['data_limite_propostas']}")
-            if lead.get("link_base"):
-                st.markdown(f"[Ver anúncio]({lead['link_base']})")
-        with col2:
-            st.metric("Score", lead["score_calculado"])
-            if lead.get("detalhe_score"):
-                st.caption(lead["detalhe_score"])
+def cor_por_score(score: int, minimo: int) -> tuple[str, str, str]:
+    """Devolve (cor_fundo, cor_texto, label) consoante o score."""
+    if score >= minimo * 2:
+        return "#d4edda", "#155724", "Alta prioridade"
+    elif score >= minimo * 1.25:
+        return "#fff3cd", "#856404", "Prioridade média"
+    else:
+        return "#f8d7da", "#721c24", "Prioridade baixa"
 
-st.divider()
-with st.expander("Diagnóstico: concursos com alguma correspondência, mas abaixo do score mínimo"):
-    quase = []
-    for lead in leads:
-        score, detalhe = calcular_score(lead, config)
-        if 0 < score < (config.get("score_minimo") or 0):
-            quase.append({**lead, "score_calculado": score, "detalhe_score": "; ".join(detalhe)})
-    quase.sort(key=lambda r: r["score_calculado"], reverse=True)
-    st.write(f"{len(quase)} concursos com correspondência parcial")
-    for lead in quase[:20]:
-        st.write(f"**{lead['score_calculado']} pts** — {lead['objeto_concurso'][:100]} ({lead['detalhe_score']})")
+score_maximo_visivel = max((r["score_calculado"] for r in resultados), default=1)
+
+for lead in resultados:
+    score = lead["score_calculado"]
+    minimo = config.get("score_minimo") or 40
+    cor_fundo, cor_texto, label = cor_por_score(score, minimo)
+    percentagem = min(int((score / score_maximo_visivel) * 100), 100)
+
+    valor_fmt = f"{lead['valor_base']:,.2f} €".replace(",", " ").replace(".", ",", 1) if lead.get("valor_base") else "—"
+    prazo_fmt = lead.get("data_limite_propostas") or "—"
+
+    st.markdown(f"""
+    <div style="border:1px solid #e0e0e0; border-radius:10px; padding:16px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+            <div style="flex:1;">
+                <div style="font-weight:600; font-size:1.05rem; margin-bottom:4px;">
+                    {lead['objeto_concurso']}
+                </div>
+                <div style="color:#666; font-size:0.85rem; margin-bottom:8px;">
+                    {lead['entidade_adjudicante']} · Ref. {lead['referencia_base']}
+                </div>
+                <div style="font-size:0.85rem; color:#444;">
+                    💰 {valor_fmt} &nbsp;&nbsp; 📅 Prazo: {prazo_fmt}
+                </div>
+            </div>
+            <div style="text-align:center; min-width:140px;">
+                <div style="background:{cor_fundo}; color:{cor_texto}; border-radius:8px; padding:8px 12px; font-weight:600; font-size:0.85rem; margin-bottom:6px;">
+                    {label}
+                </div>
+                <div style="font-size:1.3rem; font-weight:700; color:{cor_texto};">
+                    {score} pts
+                </div>
+                <div style="background:#eee; border-radius:6px; height:8px; margin-top:6px; overflow:hidden;">
+                    <div style="background:{cor_texto}; width:{percentagem}%; height:100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if lead.get("link_base") or lead.get("detalhe_score"):
+        col_a, col_b = st.columns([1, 3])
+        with col_a:
+            if lead.get("link_base"):
+                st.markdown(f"[Ver anúncio →]({lead['link_base']})")
+        with col_b:
+            if lead.get("detalhe_score"):
+                st.caption(" · ".join(lead["detalhe_score"]))
