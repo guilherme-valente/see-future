@@ -31,6 +31,10 @@ BLACK = "#232122"  # Pantone Black
 TEMPO_LIMITE_INATIVIDADE = timedelta(minutes=60)
 NOME_COOKIE_SESSAO = "see_future_session"
 
+def _agora() -> datetime:
+    """Hora atual em UTC, consistente com os timestamps 'timestamp with time zone' da BD."""
+    return datetime.now(timezone.utc)
+
 cookies = CookieController()
 
 def obter_todos_cookies_com_espera():
