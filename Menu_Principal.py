@@ -33,16 +33,13 @@ NOME_COOKIE_SESSAO = "see_future_session"
 
 cookies = CookieController()
 
-if "cookies_sincronizadas" not in st.session_state:
-    st.session_state["cookies_sincronizadas"] = False
-
-if not st.session_state["cookies_sincronizadas"]:
-    st.session_state["cookies_sincronizadas"] = True
-    st.rerun()
-
-
-def _agora() -> datetime:
-    return datetime.now(timezone.utc)
+def obter_todos_cookies_com_espera():
+    """getAll() dispara a sincronização com o browser; get() sozinho
+    pode rebentar (TypeError) se chamado antes de getAll() alguma vez ter corrido."""
+    if "cookies_iniciais" not in st.session_state:
+        st.session_state["cookies_iniciais"] = cookies.getAll()
+        st.rerun()
+    return cookies.getAll()
 
 
 # ==========================================================
@@ -224,8 +221,10 @@ def restaurar_sessao_do_cookie():
     if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
         return
 
+    todos_cookies = obter_todos_cookies_com_espera()
+
     st.session_state["sessao_restaurada"] = True
-    token = cookies.get(NOME_COOKIE_SESSAO)
+    token = todos_cookies.get(NOME_COOKIE_SESSAO) if todos_cookies else None
     if not token:
         return
 
