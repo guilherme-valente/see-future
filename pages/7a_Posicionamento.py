@@ -933,14 +933,67 @@ def main():
             st.info("Aguardando inserção de histórico de dados no Supabase para calibrar o motor preditivo.")
             return
 
+        prefill = st.session_state.pop("prefill_posicionamento", None)
+
+        MAPA_UNIDADE_NEGOCIO = {
+            "Infraestruturas de Transportes": "Infraestruturas de Transporte",
+            "Sistemas Metro-Ferroviários": "Sistema de Metro e Ferroviário",
+            "Engenharia Marítimo-Portuária": "Marítima e Portuária",
+            "Água, Saneamento e Resíduos": "Água, Saneamento e Resíduos",
+            "Cidades e Edifícios": "Cidades e Edifícios",
+            "Sustentabilidade e Energia": "Sustentabilidade e Energia",
+            "Real Estate": "Real Estate",
+            "Gestão e Supervisão da Construção": "Gestão e Supervisão da Construção",
+            "Geolab": "GEOLAB",
+        }
+
+        if prefill:
+            if prefill.get("correspondencia_automatica"):
+                st.info(
+                    f"Concurso **{prefill.get('referencia_base', '')}** — entidade **"
+                    f"{prefill.get('entidade_original_radar', '')}** associada automaticamente a "
+                    f"**{prefill.get('entidade_adjudicante', '')}** "
+                    f"({prefill.get('pontuacao_correspondencia', 0):.0%} de semelhança). Confirma se está correto."
+                )
+            else:
+                st.info(
+                    f"Dados pré-preenchidos a partir do concurso **{prefill.get('referencia_base', '')}** "
+                    f"— {prefill.get('objeto_concurso', '')[:100]}"
+                )
+
+            campos_extraidos = []
+            campos_falhados = []
+            if prefill.get("peso_preco") is not None:
+                campos_extraidos.append(f"peso do preço ({prefill['peso_preco']}%)")
+            else:
+                campos_falhados.append("peso do preço")
+            if prefill.get("limiar_anormal") is not None:
+                campos_extraidos.append(f"limiar anormal ({prefill['limiar_anormal']}%)")
+            else:
+                campos_falhados.append("limiar anormalmente baixo")
+            if prefill.get("distrito"):
+                campos_extraidos.append(f"distrito ({prefill['distrito']})")
+            else:
+                campos_falhados.append("distrito")
+
+            if campos_extraidos:
+                st.success(f"Extraído automaticamente do anúncio: {', '.join(campos_extraidos)}.")
+            if campos_falhados:
+                st.warning(f"Não foi possível extrair automaticamente: {', '.join(campos_falhados)}. Confirma manualmente.")
+
         # --- INPUTS ---
         with st.container(border=True):
             st.markdown("#### Parâmetros do Cenário")
             col_in1, col_in2, col_in3 = st.columns(3)
             with col_in1:
                 lista_clientes = sorted(df_concursos['nome_cliente'].unique())
-                cliente_sel = st.selectbox("Cliente em Análise", lista_clientes)
-                mercado_sel = st.selectbox("Unidade de Negócio", [
+                entidade_prefill = prefill.get("entidade_adjudicante") if prefill else None
+                if entidade_prefill and entidade_prefill not in lista_clientes:
+                    lista_clientes = sorted(lista_clientes + [entidade_prefill])
+                index_cliente = lista_clientes.index(entidade_prefill) if entidade_prefill in lista_clientes else 0
+                cliente_sel = st.selectbox("Cliente em Análise", lista_clientes, index=index_cliente)
+               
+                opcoes_mercado = [
                     "Infraestruturas de Transporte",
                     "Sistema de Metro e Ferroviário",
                     "Marítima e Portuária",
@@ -950,11 +1003,19 @@ def main():
                     "Real Estate",
                     "Gestão e Supervisão da Construção",
                     "GEOLAB"
-                ])
-                distrito_sel = st.selectbox("Região/Distrito", ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"])
+                ]
+                mercado_prefill = MAPA_UNIDADE_NEGOCIO.get(prefill.get("unidade_negocio")) if prefill else None
+                index_mercado = opcoes_mercado.index(mercado_prefill) if mercado_prefill in opcoes_mercado else 0
+                mercado_sel = st.selectbox("Unidade de Negócio", opcoes_mercado, index=index_mercado)
+                
+                opcoes_distrito = ["Lisboa", "Norte", "Centro", "Sul", "Internacional", "Outro"]
+                distrito_prefill = prefill.get("distrito") if prefill else None
+                index_distrito = opcoes_distrito.index(distrito_prefill) if distrito_prefill in opcoes_distrito else 0
+                distrito_sel = st.selectbox("Região/Distrito", opcoes_distrito, index=index_distrito)
 
             with col_in2:
-                preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=100000.0, step=5000.0)
+                valor_prefill = float(prefill["valor_base"]) if prefill and prefill.get("valor_base") else 100000.0
+                preco_base_input = st.number_input("Preço Base do Concurso (€)", min_value=1000.0, value=valor_prefill, step=5000.0)
                 criterio_sel = st.selectbox("Critério de Avaliação", ["Preço Mais Baixo", "Qualidade/Preço (Fatores Ponderados)"])
                 pais_sel = st.selectbox("País", [
             "Portugal",
@@ -1153,7 +1214,8 @@ def main():
                 escalao_sim = definir_escalao(preco_base_input)
 
             with col_in3:
-                limiar_anormal = st.number_input("Limiar Preço Anormalmente Baixo (% do Valor Base)", min_value=10.0, max_value=90.0, value=60.0, step=1.0)
+                limiar_anormal_prefill = float(prefill["limiar_anormal"]) if prefill and prefill.get("limiar_anormal") else 60.0
+                limiar_anormal = st.number_input("Limiar Preço Anormalmente Baixo (% do Valor Base)", min_value=10.0, max_value=90.0, value=limiar_anormal_prefill, step=1.0)
                 if criterio_sel == "Preço Mais Baixo":
                     w_preco, w_tecnico = 100, 0
                 else:
