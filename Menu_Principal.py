@@ -33,6 +33,13 @@ NOME_COOKIE_SESSAO = "see_future_session"
 
 cookies = CookieController()
 
+if "cookies_sincronizadas" not in st.session_state:
+    st.session_state["cookies_sincronizadas"] = False
+
+if not st.session_state["cookies_sincronizadas"]:
+    st.session_state["cookies_sincronizadas"] = True
+    st.rerun()
+
 
 def _agora() -> datetime:
     return datetime.now(timezone.utc)
@@ -214,21 +221,11 @@ def criar_sessao(utilizador: dict) -> str:
 
 
 def restaurar_sessao_do_cookie():
-    if st.session_state["autenticado"]:
+    if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
         return
 
-    todos_cookies = cookies.getAll()
-
-    # O componente ainda não sincronizou com o browser nesta execução —
-    # não podemos concluir nada ainda, tentamos de novo no próximo run.
-    if todos_cookies is None:
-        return
-
-    if st.session_state["sessao_restaurada"]:
-        return
     st.session_state["sessao_restaurada"] = True
-
-    token = todos_cookies.get(NOME_COOKIE_SESSAO)
+    token = cookies.get(NOME_COOKIE_SESSAO)
     if not token:
         return
 
