@@ -67,7 +67,6 @@ garantir_estado("papel_utilizador", "")
 garantir_estado("utilizador_id", None)
 garantir_estado("modulo_ativo", "menu")  # 'menu' | 'laboratorio' | 'avaliacao'
 garantir_estado("sessao_token", None)
-garantir_estado("sessao_restaurada", False)  # evita repetir a restauração em todo rerun
 
 # ==========================================================
 # PÁGINAS (st.Page)
@@ -221,17 +220,13 @@ def restaurar_sessao_do_cookie():
     Ao carregar a app (ex: após F5), tenta restaurar a sessão a partir
     do token guardado no cookie, validando-o contra a tabela sessoes_ativas.
     """
-    if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
+    if st.session_state["autenticado"]:
         return
-
-    st.session_state["sessao_restaurada"] = True
 
     try:
         token = cookies.get(NOME_COOKIE_SESSAO)
     except TypeError:
-        # Componente de cookies ainda não sincronizou nesta execução — tenta na próxima.
-        st.session_state["sessao_restaurada"] = False
-        return
+        return  # componente ainda não sincronizou; a próxima rerun automática trata disto
 
     if not token:
         return
@@ -347,7 +342,6 @@ def terminar_sessao(motivo: str = "manual"):
     st.session_state["utilizador_id"] = None
     st.session_state["sessao_token"] = None
     st.session_state["modulo_ativo"] = "menu"
-    st.session_state["sessao_restaurada"] = False
 
     if motivo == "inatividade":
         st.session_state["mensagem_logout"] = True
