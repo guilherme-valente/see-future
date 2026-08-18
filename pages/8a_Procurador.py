@@ -14,6 +14,19 @@ with st.sidebar:
 st.set_page_config(page_title="Procurador | See Future", layout="wide")
 st.title("Procurador de Concursos")
 
+@st.cache_data(ttl=300)
+def obter_ultima_atualizacao_real():
+    resp = client.table("radar_leads").select("updated_at").order("updated_at", desc=True).limit(1).execute()
+    if resp.data:
+        return resp.data[0]["updated_at"]
+    return None
+
+ultima_atualizacao = obter_ultima_atualizacao_real()
+if ultima_atualizacao:
+    from datetime import datetime
+    dt = datetime.fromisoformat(ultima_atualizacao.replace("Z", "+00:00"))
+    st.caption(f"Última alteração real aos dados: {dt.strftime('%d/%m/%Y %H:%M')}")
+
 @st.cache_resource
 def get_client():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
