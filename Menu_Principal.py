@@ -37,14 +37,6 @@ def _agora() -> datetime:
 
 cookies = CookieController()
 
-def obter_todos_cookies_com_espera():
-    """getAll() dispara a sincronização com o browser; get() sozinho
-    pode rebentar (TypeError) se chamado antes de getAll() alguma vez ter corrido."""
-    if "cookies_iniciais" not in st.session_state:
-        st.session_state["cookies_iniciais"] = cookies.getAll()
-        st.rerun()
-    return cookies.getAll()
-
 
 # ==========================================================
 # LIGAÇÃO À BASE DE DADOS (SUPABASE)
@@ -211,24 +203,36 @@ def criar_sessao(utilizador: dict) -> str:
     st.session_state["utilizador_id"] = utilizador["id"]
     st.session_state["sessao_token"] = token
 
-    cookies.set(
-        NOME_COOKIE_SESSAO,
-        token,
-        max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
-    )
+    try:
+        cookies.set(
+            NOME_COOKIE_SESSAO,
+            token,
+            max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
+        )
+    except TypeError:
+        pass  # componente de cookies ainda não sincronizou nesta execução; a BD já tem a sessão válida
 
     registar_log(utilizador["id"], utilizador.get("email", ""), "login", sessao_token=token)
     return token
 
 
 def restaurar_sessao_do_cookie():
+    """
+    Ao carregar a app (ex: após F5), tenta restaurar a sessão a partir
+    do token guardado no cookie, validando-o contra a tabela sessoes_ativas.
+    """
     if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
         return
 
-    todos_cookies = obter_todos_cookies_com_espera()
-
     st.session_state["sessao_restaurada"] = True
-    token = todos_cookies.get(NOME_COOKIE_SESSAO) if todos_cookies else None
+
+    try:
+        token = cookies.get(NOME_COOKIE_SESSAO)
+    except TypeError:
+        # Componente de cookies ainda não sincronizou nesta execução — tenta na próxima.
+        st.session_state["sessao_restaurada"] = False
+        return
+
     if not token:
         return
 
@@ -269,11 +273,14 @@ def registar_atividade():
         "expira_em": nova_expiracao.isoformat(),
     }).eq("token", token).execute()
 
-    cookies.set(
-        NOME_COOKIE_SESSAO,
-        token,
-        max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
-    )
+    try:
+        cookies.set(
+            NOME_COOKIE_SESSAO,
+            token,
+            max_age=int(TEMPO_LIMITE_INATIVIDADE.total_seconds()),
+        )
+    except TypeError:
+        pass
 
 
 def sessao_expirou() -> bool:
@@ -329,7 +336,10 @@ def terminar_sessao(motivo: str = "manual"):
         except Exception:
             pass
 
-    cookies.remove(NOME_COOKIE_SESSAO)
+    try:
+        cookies.remove(NOME_COOKIE_SESSAO)
+    except Exception:
+        pass
 
     st.session_state["autenticado"] = False
     st.session_state["nome_utilizador"] = ""
