@@ -214,15 +214,21 @@ def criar_sessao(utilizador: dict) -> str:
 
 
 def restaurar_sessao_do_cookie():
-    """
-    Ao carregar a app (ex: após F5), tenta restaurar a sessão a partir
-    do token guardado no cookie, validando-o contra a tabela sessoes_ativas.
-    """
-    if st.session_state["autenticado"] or st.session_state["sessao_restaurada"]:
+    if st.session_state["autenticado"]:
         return
 
-    st.session_state["sessao_restaurada"] = True  # só tenta uma vez por carregamento
-    token = cookies.get(NOME_COOKIE_SESSAO)
+    todos_cookies = cookies.getAll()
+
+    # O componente ainda não sincronizou com o browser nesta execução —
+    # não podemos concluir nada ainda, tentamos de novo no próximo run.
+    if todos_cookies is None:
+        return
+
+    if st.session_state["sessao_restaurada"]:
+        return
+    st.session_state["sessao_restaurada"] = True
+
+    token = todos_cookies.get(NOME_COOKIE_SESSAO)
     if not token:
         return
 
