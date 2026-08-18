@@ -82,16 +82,6 @@ def calcular_score(lead: dict, cfg: dict) -> tuple[int, list[str]]:
 
     return score, detalhe
 
-resultados = []
-for lead in leads:
-    score, detalhe = calcular_score(lead, config)
-    if score >= (config.get("score_minimo") or 0):
-        resultados.append({**lead, "score_calculado": score, "detalhe_score": detalhe})
-
-resultados.sort(key=lambda r: r["score_calculado"], reverse=True)
-
-st.write(f"**{len(resultados)}** concursos relevantes para **{unidade_selecionada}** (de {len(leads)} abertos)")
-
 def cor_por_score(score: int, minimo: int) -> tuple[str, str, str]:
     """Devolve (cor_fundo, cor_texto, label) consoante o score."""
     if score >= minimo * 2:
@@ -101,16 +91,16 @@ def cor_por_score(score: int, minimo: int) -> tuple[str, str, str]:
     else:
         return "#f8d7da", "#721c24", "Prioridade baixa"
 
-score_maximo_visivel = max((r["score_calculado"] for r in resultados), default=1)
-
-for lead in resultados:
-    score = lead["score_calculado"]
-    minimo = config.get("score_minimo") or 40
+def renderizar_cartao(lead: dict, score: int, detalhe: list[str], minimo: int, score_max: int):
     cor_fundo, cor_texto, label = cor_por_score(score, minimo)
-    percentagem = min(int((score / score_maximo_visivel) * 100), 100)
+    percentagem = min(int((score / score_max) * 100), 100) if score_max else 0
 
     valor_fmt = f"{lead['valor_base']:,.2f} €".replace(",", " ").replace(".", ",", 1) if lead.get("valor_base") else "—"
     prazo_fmt = lead.get("data_limite_propostas") or "—"
+    link = lead.get("link_base")
+    detalhe_texto = " · ".join(detalhe) if detalhe else "Sem correspondências"
+
+    link_html = f'<a href="{link}" target="_blank" style="font-size:0.85rem;">Ver anúncio</a>' if link else ""
 
     st.markdown(f"""
     <div style="border:1px solid #e0e0e0; border-radius:10px; padding:16px; margin-bottom:12px;">
@@ -122,9 +112,13 @@ for lead in resultados:
                 <div style="color:#666; font-size:0.85rem; margin-bottom:8px;">
                     {lead['entidade_adjudicante']} · Ref. {lead['referencia_base']}
                 </div>
-                <div style="font-size:0.85rem; color:#444;">
-                    💰 {valor_fmt} &nbsp;&nbsp; 📅 Prazo: {prazo_fmt}
+                <div style="font-size:0.85rem; color:#444; margin-bottom:8px;">
+                    Valor base: {valor_fmt} &nbsp;&nbsp; Prazo: {prazo_fmt}
                 </div>
+                <div style="font-size:0.8rem; color:#888; margin-bottom:6px;">
+                    {detalhe_texto}
+                </div>
+                {link_html}
             </div>
             <div style="text-align:center; min-width:140px;">
                 <div style="background:{cor_fundo}; color:{cor_texto}; border-radius:8px; padding:8px 12px; font-weight:600; font-size:0.85rem; margin-bottom:6px;">
@@ -141,11 +135,28 @@ for lead in resultados:
     </div>
     """, unsafe_allow_html=True)
 
-    if lead.get("link_base") or lead.get("detalhe_score"):
-        col_a, col_b = st.columns([1, 3])
-        with col_a:
-            if lead.get("link_base"):
-                st.markdown(f"[Ver anúncio →]({lead['link_base']})")
-        with col_b:
-            if lead.get("detalhe_score"):
-                st.caption(" · ".join(lead["detalhe_score"]))
+score_minimo = config.get("score_minimo") or 40
+
+resultados = []
+quase = []
+for lead in leads:
+    score, detalhe = calcular_score(lead, config)
+    if score >= score_minimo:
+        resultados.append((lead, score, detalhe))
+    elif score > 0:
+        quase.append((lead, score, detalhe))
+
+resultados.sort(key=lambda r: r[1], reverse=True)
+quase.sort(key=lambda r: r[1], reverse=True)
+
+score_max_geral = max([r[1] for r in resultados] + [q[1] for q in quase], default=1)
+
+st.write(f"**{len(resultados)}** concursos relevantes para **{unidade_selecionada}** (de {len(leads)} abertos)")
+
+for lead, score, detalhe in resultados:
+    renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral)
+
+st.divider()
+with st.expander(f"Correspondência parcial — abaixo do score mínimo ({len(quase)} concursos)"):
+    for lead, score, detalhe in quase[:30]:
+        renderizar_cartao(lead, score, detalhe, score_minimo, score_max_geral)
